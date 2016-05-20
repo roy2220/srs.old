@@ -29,6 +29,7 @@ SRS_HTTP_SERVER=RESERVED
 SRS_STREAM_CASTER=RESERVED
 SRS_KAFKA=RESERVED
 SRS_HTTP_API=RESERVED
+SRS_DYNAMIC_CONFIG=RESERVED
 SRS_LIBRTMP=RESERVED
 SRS_RESEARCH=RESERVED
 SRS_UTEST=RESERVED
@@ -240,6 +241,7 @@ function parse_user_option() {
         --with-stream-caster)           SRS_STREAM_CASTER=YES       ;;
         --with-kafka)                   SRS_KAFKA=YES               ;;
         --with-http-api)                SRS_HTTP_API=YES            ;;
+        --with-dynamic-config)          SRS_DYNAMIC_CONFIG=YES      ;;
         --with-librtmp)                 SRS_LIBRTMP=YES             ;;
         --with-research)                SRS_RESEARCH=YES            ;;
         --with-utest)                   SRS_UTEST=YES               ;;
@@ -266,6 +268,7 @@ function parse_user_option() {
         --without-stream-caster)        SRS_STREAM_CASTER=NO        ;;
         --without-kafka)                SRS_KAFKA=NO                ;;
         --without-http-api)             SRS_HTTP_API=NO             ;;
+        --without-dynamic-config)       SRS_DYNAMIC_CONFIG=NO       ;;
         --without-librtmp)              SRS_LIBRTMP=NO              ;;
         --without-research)             SRS_RESEARCH=NO             ;;
         --without-utest)                SRS_UTEST=NO                ;;
@@ -402,6 +405,7 @@ function apply_user_presets() {
         SRS_STREAM_CASTER=NO
         SRS_KAFKA=NO
         SRS_HTTP_API=NO
+        SRS_DYNAMIC_CONFIG=NO
         SRS_LIBRTMP=NO
         SRS_RESEARCH=NO
         SRS_UTEST=NO
@@ -431,6 +435,7 @@ function apply_user_presets() {
         SRS_STREAM_CASTER=YES
         SRS_KAFKA=YES
         SRS_HTTP_API=YES
+        SRS_DYNAMIC_CONFIG=YES
         SRS_LIBRTMP=YES
         SRS_RESEARCH=YES
         SRS_UTEST=YES
@@ -460,6 +465,7 @@ function apply_user_presets() {
         SRS_STREAM_CASTER=NO
         SRS_KAFKA=NO
         SRS_HTTP_API=NO
+        SRS_DYNAMIC_CONFIG=NO
         SRS_LIBRTMP=NO
         SRS_RESEARCH=NO
         SRS_UTEST=NO
@@ -489,6 +495,7 @@ function apply_user_presets() {
         SRS_STREAM_CASTER=NO
         SRS_KAFKA=NO
         SRS_HTTP_API=NO
+        SRS_DYNAMIC_CONFIG=NO
         SRS_LIBRTMP=NO
         SRS_RESEARCH=NO
         SRS_UTEST=NO
@@ -518,6 +525,7 @@ function apply_user_presets() {
         SRS_STREAM_CASTER=NO
         SRS_KAFKA=NO
         SRS_HTTP_API=NO
+        SRS_DYNAMIC_CONFIG=NO
         SRS_LIBRTMP=NO
         SRS_RESEARCH=NO
         SRS_UTEST=NO
@@ -547,6 +555,7 @@ function apply_user_presets() {
         SRS_STREAM_CASTER=YES
         SRS_KAFKA=YES
         SRS_HTTP_API=YES
+        SRS_DYNAMIC_CONFIG=YES
         SRS_LIBRTMP=YES
         SRS_RESEARCH=NO
         SRS_UTEST=NO
@@ -577,6 +586,7 @@ function apply_user_presets() {
         SRS_STREAM_CASTER=YES
         SRS_KAFKA=YES
         SRS_HTTP_API=YES
+        SRS_DYNAMIC_CONFIG=YES
         SRS_LIBRTMP=YES
         SRS_RESEARCH=NO
         SRS_UTEST=NO
@@ -606,6 +616,7 @@ function apply_user_presets() {
         SRS_STREAM_CASTER=YES
         SRS_KAFKA=YES
         SRS_HTTP_API=YES
+        SRS_DYNAMIC_CONFIG=YES
         SRS_LIBRTMP=YES
         SRS_RESEARCH=NO
         SRS_UTEST=YES
@@ -635,6 +646,7 @@ function apply_user_presets() {
         SRS_STREAM_CASTER=YES
         SRS_KAFKA=YES
         SRS_HTTP_API=YES
+        SRS_DYNAMIC_CONFIG=YES
         SRS_LIBRTMP=YES
         SRS_RESEARCH=NO
         SRS_UTEST=YES
@@ -664,6 +676,7 @@ function apply_user_presets() {
         SRS_STREAM_CASTER=YES
         SRS_KAFKA=YES
         SRS_HTTP_API=YES
+        SRS_DYNAMIC_CONFIG=YES
         SRS_LIBRTMP=YES
         SRS_RESEARCH=YES
         SRS_UTEST=YES
@@ -693,6 +706,7 @@ function apply_user_presets() {
         SRS_STREAM_CASTER=YES
         SRS_KAFKA=YES
         SRS_HTTP_API=YES
+        SRS_DYNAMIC_CONFIG=YES
         SRS_LIBRTMP=NO
         SRS_RESEARCH=NO
         SRS_UTEST=NO
@@ -722,6 +736,7 @@ function apply_user_presets() {
         SRS_STREAM_CASTER=YES
         SRS_KAFKA=YES
         SRS_HTTP_API=YES
+        SRS_DYNAMIC_CONFIG=YES
         SRS_LIBRTMP=YES
         SRS_RESEARCH=NO
         SRS_UTEST=YES
@@ -751,6 +766,7 @@ function apply_user_presets() {
         SRS_STREAM_CASTER=YES
         SRS_KAFKA=YES
         SRS_HTTP_API=YES
+        SRS_DYNAMIC_CONFIG=YES
         SRS_LIBRTMP=YES
         SRS_RESEARCH=NO
         SRS_UTEST=NO
@@ -780,6 +796,7 @@ function apply_user_presets() {
         SRS_STREAM_CASTER=NO
         SRS_KAFKA=YES
         SRS_HTTP_API=YES
+        SRS_DYNAMIC_CONFIG=YES
         SRS_LIBRTMP=YES
         SRS_RESEARCH=NO
         SRS_UTEST=NO
@@ -814,6 +831,7 @@ function apply_user_detail_options() {
     if [ $SRS_HTTP_CALLBACK = YES ]; then SRS_HTTP_CORE=YES; fi
     if [ $SRS_HTTP_SERVER = YES ]; then SRS_HTTP_CORE=YES; fi
     if [ $SRS_HTTP_API = YES ]; then SRS_HTTP_CORE=YES; fi
+    if [ $SRS_DYNAMIC_CONFIG = YES ]; then SRS_HTTP_CORE=YES; fi
 
     # parse the jobs for make
     if [[ "" -eq SRS_JOBS ]]; then 
@@ -844,6 +862,7 @@ function apply_user_detail_options() {
         SRS_STREAM_CASTER=NO
         SRS_KAFKA=NO
         SRS_HTTP_API=NO
+        SRS_DYNAMIC_CONFIG=NO
         SRS_LIBRTMP=YES
         SRS_RESEARCH=YES
         SRS_UTEST=NO
@@ -877,6 +896,7 @@ SRS_AUTO_CONFIGURE="--prefix=${SRS_PREFIX}"
     if [ $SRS_STREAM_CASTER = YES ]; then SRS_AUTO_CONFIGURE="${SRS_AUTO_CONFIGURE} --with-stream-caster"; else SRS_AUTO_CONFIGURE="${SRS_AUTO_CONFIGURE} --without-stream-caster"; fi
     if [ $SRS_KAFKA = YES ]; then SRS_AUTO_CONFIGURE="${SRS_AUTO_CONFIGURE} --with-kafka"; else SRS_AUTO_CONFIGURE="${SRS_AUTO_CONFIGURE} --without-kafka"; fi
     if [ $SRS_HTTP_API = YES ]; then SRS_AUTO_CONFIGURE="${SRS_AUTO_CONFIGURE} --with-http-api"; else SRS_AUTO_CONFIGURE="${SRS_AUTO_CONFIGURE} --without-http-api"; fi
+    if [ $SRS_DYNAMIC_CONFIG = YES ]; then SRS_AUTO_CONFIGURE="${SRS_AUTO_CONFIGURE} --with-dynamic-config"; else SRS_AUTO_CONFIGURE="${SRS_AUTO_CONFIGURE} --without-dynamic-config"; fi
     if [ $SRS_LIBRTMP = YES ]; then SRS_AUTO_CONFIGURE="${SRS_AUTO_CONFIGURE} --with-librtmp"; else SRS_AUTO_CONFIGURE="${SRS_AUTO_CONFIGURE} --without-librtmp"; fi
     if [ $SRS_RESEARCH = YES ]; then SRS_AUTO_CONFIGURE="${SRS_AUTO_CONFIGURE} --with-research"; else SRS_AUTO_CONFIGURE="${SRS_AUTO_CONFIGURE} --without-research"; fi
     if [ $SRS_UTEST = YES ]; then SRS_AUTO_CONFIGURE="${SRS_AUTO_CONFIGURE} --with-utest"; else SRS_AUTO_CONFIGURE="${SRS_AUTO_CONFIGURE} --without-utest"; fi
@@ -968,6 +988,7 @@ function check_option_conflicts() {
     if [ $SRS_STREAM_CASTER = RESERVED ]; then echo "you must specifies the stream-caster, see: ./configure --help"; __check_ok=NO; fi
     if [ $SRS_KAFKA = RESERVED ]; then echo "you must specifies the kafka, see: ./configure --help"; __check_ok=NO; fi
     if [ $SRS_HTTP_API = RESERVED ]; then echo "you must specifies the http-api, see: ./configure --help"; __check_ok=NO; fi
+    if [ $SRS_DYNAMIC_CONFIG = RESERVED ]; then echo "you must specifies the dynamic-config, see: ./configure --help"; __check_ok=NO; fi
     if [ $SRS_LIBRTMP = RESERVED ]; then echo "you must specifies the librtmp, see: ./configure --help"; __check_ok=NO; fi
     if [ $SRS_RESEARCH = RESERVED ]; then echo "you must specifies the research, see: ./configure --help"; __check_ok=NO; fi
     if [ $SRS_UTEST = RESERVED ]; then echo "you must specifies the utest, see: ./configure --help"; __check_ok=NO; fi

@@ -49,6 +49,10 @@ class SrsRequest;
 class SrsJsonArray;
 class SrsConfDirective;
 
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+class SrsHttpClient;
+#endif
+
 
 namespace _srs_internal
 {
@@ -77,10 +81,20 @@ namespace _srs_internal
          * fullfill the buffer with content of file specified by filename.
          */
         virtual int fullfill(const char* filename);
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+        /**
+         * fullfill the buffer with content of json returned by url.
+         */
+        virtual int fullfill(const char* action, std::string url, SrsRequest* req);
+#endif
         /**
          * whether buffer is empty.
          */
         virtual bool empty();
+    private:
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+        virtual int do_post(SrsHttpClient* hc, std::string url, std::string req, int& code, std::string& res);
+#endif
     };
 };
 

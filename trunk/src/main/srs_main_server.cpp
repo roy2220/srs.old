@@ -79,6 +79,8 @@ void show_macro_features()
         ss << ", hc:" << srs_bool2switch(SRS_AUTO_HTTP_CALLBACK_BOOL);
         // ha(http api)
         ss << ", ha:" << srs_bool2switch(SRS_AUTO_HTTP_API_BOOL);
+        // ha(dynamic config)
+        ss << ", dc:" << srs_bool2switch(SRS_AUTO_DYNAMIC_CONFIG_BOOL);
         // hs(http server)
         ss << ", hs:" << srs_bool2switch(SRS_AUTO_HTTP_SERVER_BOOL);
         // hp(http parser)

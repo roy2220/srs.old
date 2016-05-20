@@ -109,6 +109,12 @@ else
     srs_undefine_macro "SRS_AUTO_HTTP_API" $SRS_AUTO_HEADERS_H
 fi
 
+if [ $SRS_DYNAMIC_CONFIG = YES ]; then
+    srs_define_macro "SRS_AUTO_DYNAMIC_CONFIG" $SRS_AUTO_HEADERS_H
+else
+    srs_undefine_macro "SRS_AUTO_DYNAMIC_CONFIG" $SRS_AUTO_HEADERS_H
+fi
+
 if [ $SRS_NGINX = YES ]; then
     srs_define_macro "SRS_AUTO_NGINX" $SRS_AUTO_HEADERS_H
 else

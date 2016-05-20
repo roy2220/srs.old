@@ -53,6 +53,13 @@ using namespace std;
 #include <srs_kernel_utility.hpp>
 #include <srs_rtmp_stack.hpp>
 
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+#include <srs_app_http_conn.hpp>
+#include <srs_app_http_client.hpp>
+
+#define SRS_HTTP_RESPONSE_OK    SRS_XSTR(ERROR_SUCCESS)
+#endif
+
 using namespace _srs_internal;
 
 // the version to identify the core.
@@ -163,6 +170,132 @@ namespace _srs_internal
         
         return ret;
     }
+
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    int SrsConfigBuffer::fullfill(const char* action, std::string url, SrsRequest* req)
+    {
+        int ret = ERROR_SUCCESS;
+        
+        int client_id = _srs_context->get_id();
+        
+        SrsJsonObject* obj = SrsJsonAny::object();
+        SrsAutoFree(SrsJsonObject, obj);
+        
+        obj->set("action", SrsJsonAny::str(action));
+        obj->set("client_id", SrsJsonAny::integer(client_id));
+        obj->set("ip", SrsJsonAny::str(req->ip.c_str()));
+        obj->set("vhost", SrsJsonAny::str(req->vhost.c_str()));
+        obj->set("app", SrsJsonAny::str(req->app.c_str()));
+        obj->set("tcUrl", SrsJsonAny::str(req->tcUrl.c_str()));
+        obj->set("pageUrl", SrsJsonAny::str(req->pageUrl.c_str()));
+            
+        std::string data = obj->dumps();
+        std::string res;
+        int status_code;
+        
+        SrsHttpClient http;
+        if ((ret = do_post(&http, url, data, status_code, res)) != ERROR_SUCCESS) {
+            srs_error("%s fullfill failed. "
+                "client_id=%d, url=%s, request=%s, response=%s, code=%d, ret=%d",
+                action, client_id, url.c_str(), data.c_str(), res.c_str(), status_code, ret);
+            return ret;
+        }
+        
+        srs_trace("%s fullfill success. "
+            "client_id=%d, url=%s, request=%s, response=%s, ret=%d",
+            action, client_id, url.c_str(), data.c_str(), res.c_str(), ret);
+        
+        return ret;
+    }
+
+    int SrsConfigBuffer::do_post(SrsHttpClient* hc, std::string url, std::string req, int& code, std::string& res)
+    {
+        int ret = ERROR_SUCCESS;
+        
+        SrsHttpUri uri;
+        if ((ret = uri.initialize(url)) != ERROR_SUCCESS) {
+            srs_error("http: post failed. url=%s, ret=%d", url.c_str(), ret);
+            return ret;
+        }
+        
+        if ((ret = hc->initialize(uri.get_host(), uri.get_port())) != ERROR_SUCCESS) {
+            return ret;
+        }
+        
+        ISrsHttpMessage* msg = NULL;
+        if ((ret = hc->post(uri.get_path(), req, &msg)) != ERROR_SUCCESS) {
+            return ret;
+        }
+        SrsAutoFree(ISrsHttpMessage, msg);
+        
+        code = msg->status_code();
+        if ((ret = msg->body_read_all(res)) != ERROR_SUCCESS) {
+            return ret;
+        }
+        
+        // ensure the http status is ok.
+        // https://github.com/ossrs/srs/issues/158
+        if (code != SRS_CONSTS_HTTP_OK && code != SRS_CONSTS_HTTP_Created) {
+            ret = ERROR_HTTP_STATUS_INVALID;
+            srs_error("invalid response status=%d. ret=%d", code, ret);
+            return ret;
+        }
+        
+        // should never be empty.
+        if (res.empty()) {
+            ret = ERROR_HTTP_DATA_INVALID;
+            srs_error("invalid empty response. ret=%d", ret);
+            return ret;
+        }
+        
+        // parse string res to json.
+        SrsJsonAny* info = SrsJsonAny::loads((char*)res.c_str());
+        if (!info) {
+            ret = ERROR_HTTP_DATA_INVALID;
+            srs_error("invalid response %s. ret=%d", res.c_str(), ret);
+            return ret;
+        }
+        SrsAutoFree(SrsJsonAny, info);
+        
+        // response error code in string.
+        if (!info->is_object()) {
+            if (res != SRS_HTTP_RESPONSE_OK) {
+                ret = ERROR_HTTP_DATA_INVALID;
+                srs_error("invalid response number %s. ret=%d", res.c_str(), ret);
+                return ret;
+            }
+            return ret;
+        }
+        
+        // response standard object, format in json: {"code": 0, "data": ""}
+        SrsJsonObject* res_info = info->to_object();
+        SrsJsonAny* res_code = NULL;
+        if ((res_code = res_info->ensure_property_integer("code")) == NULL) {
+            ret = ERROR_RESPONSE_CODE;
+            srs_error("invalid response without code, ret=%d", ret);
+            return ret;
+        }
+        
+        if ((res_code->to_integer()) != ERROR_SUCCESS) {
+            ret = ERROR_RESPONSE_CODE;
+            srs_error("error response code=%d. ret=%d", res_code->to_integer(), ret);
+            return ret;
+        }
+
+        SrsJsonAny* res_data = NULL;
+        if ((res_data = res_info->ensure_property_string("data")) != NULL) {
+            std::string data = res_data->to_str();
+
+            srs_freepa(start);
+            pos = last = start = new char[data.size()];
+            end = start + data.size();
+
+            memcpy(start, data.data(), data.size());
+        }
+        
+        return ret;
+    }
+#endif
     
     bool SrsConfigBuffer::empty()
     {
