@@ -1314,7 +1314,11 @@ SrsConnection* SrsServer::fd2conn(SrsListenerType type, st_netfd_t stfd)
     SrsConnection* conn = NULL;
     
     if (type == SrsListenerRtmpStream) {
+#ifdef SRS_AUTO_KAFKA
         conn = new SrsRtmpConn(this, kafka, stfd, ip);
+#else
+        conn = new SrsRtmpConn(this, stfd, ip);
+#endif
     } else if (type == SrsListenerHttpApi) {
 #ifdef SRS_AUTO_HTTP_API
         conn = new SrsHttpApi(this, stfd, http_api_mux, ip);
