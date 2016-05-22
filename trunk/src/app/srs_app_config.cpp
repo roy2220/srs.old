@@ -5404,28 +5404,7 @@ SrsConfDirective* SrsConfig::get_transcode(string vhost, string scope)
 #ifdef SRS_AUTO_DYNAMIC_CONFIG 
 SrsConfDirective* SrsConfig::get_dynamic_transcode(SrsRequest *req)
 {
-    SrsConfDirective* conf = get_vhost(req->vhost);
-    if (!conf) {
-        return NULL;
-    }
-    
-    conf = conf->get("dynamic_transcode");
-    if (!conf || conf->arg0().empty()) {
-        return NULL;
-    }
-
-    SrsConfigBuffer buf;
-    if (buf.fullfill("get_dynamic_transcode", conf->arg0(), req) != ERROR_SUCCESS) {
-        return NULL;
-    }
-
-    SrsConfDirective *dynm_conf = new SrsConfDirective();
-    if (dynm_conf->parse(&buf) != ERROR_SUCCESS) {
-        srs_freep(dynm_conf);
-        return NULL;
-    }
-    
-    return dynm_conf;
+    return get_dynamic_config("dynamic_transcode", req);
 }
 #endif
 
@@ -7044,3 +7023,31 @@ SrsConfDirective* SrsConfig::get_stats_disk_device()
     
     return conf;
 }
+
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+SrsConfDirective* SrsConfig::get_dynamic_config(const char* name, SrsRequest *req)
+{
+    SrsConfDirective* conf = get_vhost(req->vhost);
+    if (!conf) {
+        return NULL;
+    }
+    
+    conf = conf->get(name);
+    if (!conf || conf->arg0().empty()) {
+        return NULL;
+    }
+
+    SrsConfigBuffer buf;
+    if (buf.fullfill(name, conf->arg0(), req) != ERROR_SUCCESS) {
+        return NULL;
+    }
+
+    SrsConfDirective *dynm_conf = new SrsConfDirective();
+    if (dynm_conf->parse(&buf) != ERROR_SUCCESS) {
+        srs_freep(dynm_conf);
+        return NULL;
+    }
+    
+    return dynm_conf;
+}
+#endif

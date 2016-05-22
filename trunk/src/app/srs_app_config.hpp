@@ -1426,6 +1426,11 @@ public:
     * @return the disk device name to stat. NULL if not configed.
     */
     virtual SrsConfDirective*   get_stats_disk_device();
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+// dynamic config
+private:
+    virtual SrsConfDirective*   get_dynamic_config(const char* name, SrsRequest *req);
+#endif
 };
 
 #endif
