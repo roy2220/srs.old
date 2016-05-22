@@ -971,6 +971,9 @@ public:
     *       and stream.transcode.srs.com.
     */
     virtual SrsConfDirective*   get_transcode(std::string vhost, std::string scope);
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    virtual SrsConfDirective*   get_dynamic_transcode(SrsRequest *req);
+#endif
     /**
     * whether the transcode directive is enabled.
     */

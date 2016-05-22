@@ -3940,6 +3940,9 @@ int SrsConfig::check_config()
                 && n != "play" && n != "publish" && n != "cluster"
                 && n != "security" && n != "http_remux"
                 && n != "http_static" && n != "hds" && n != "exec"
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+                && n != "dynamic_transcode"
+#endif
             ) {
                 ret = ERROR_SYSTEM_CONFIG_INVALID;
                 srs_error("unsupported vhost directive %s, ret=%d", n.c_str(), ret);
@@ -5397,6 +5400,34 @@ SrsConfDirective* SrsConfig::get_transcode(string vhost, string scope)
     
     return conf;
 }
+
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+SrsConfDirective* SrsConfig::get_dynamic_transcode(SrsRequest *req)
+{
+    SrsConfDirective* conf = get_vhost(req->vhost);
+    if (!conf) {
+        return NULL;
+    }
+    
+    conf = conf->get("dynamic_transcode");
+    if (!conf || conf->arg0().empty()) {
+        return NULL;
+    }
+
+    SrsConfigBuffer buf;
+    if (buf.fullfill("get_dynamic_transcode", conf->arg0(), req) != ERROR_SUCCESS) {
+        return NULL;
+    }
+
+    SrsConfDirective *dynm_conf = new SrsConfDirective();
+    if (dynm_conf->parse(&buf) != ERROR_SUCCESS) {
+        srs_freep(dynm_conf);
+        return NULL;
+    }
+    
+    return dynm_conf;
+}
+#endif
 
 bool SrsConfig::get_transcode_enabled(SrsConfDirective* conf)
 {
