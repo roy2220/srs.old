@@ -2274,6 +2274,7 @@ int SrsSource::create_forwarders()
     SrsConfDirective* forward;
     SrsConfDirective* destinations;
 
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
     if ((forward = _srs_config->get_dynamic_forward(req)) != NULL) {
         SrsAutoFree(SrsConfDirective, forward);
         if (_srs_config->get_forward_enabled(forward)
@@ -2302,6 +2303,7 @@ int SrsSource::create_forwarders()
             }
         }
     }
+#endif
 
     if ((forward = _srs_config->get_forward(req->vhost)) != NULL
         && _srs_config->get_forward_enabled(forward)
