@@ -2373,8 +2373,11 @@ int SrsConfig::global_to_json(SrsJsonObject* obj)
         if (!get_vhost_is_edge(dir->arg0())) {
             sobj->set("origin", SrsJsonAny::boolean(true));
         }
-        if (get_forward_enabled(dir->arg0())) {
-            sobj->set("forward", SrsJsonAny::boolean(true));
+        if (true) {
+            SrsConfDirective* sdir = get_forward(dir->arg0());
+            if (sdir != NULL && get_forward_enabled(sdir)) {
+                sobj->set("forward", SrsJsonAny::boolean(true));
+            }
         }
         
         if (get_security_enabled(dir->arg0())) {
@@ -2510,7 +2513,7 @@ int SrsConfig::vhost_to_json(SrsConfDirective* vhost, SrsJsonObject* obj)
         SrsJsonObject* forward = SrsJsonAny::object();
         obj->set("forward", forward);
         
-        forward->set("enabled", SrsJsonAny::boolean(get_forward_enabled(vhost->name)));
+        forward->set("enabled", SrsJsonAny::boolean(get_forward_enabled(dir)));
         
         for (int i = 0; i < (int)dir->directives.size(); i++) {
             SrsConfDirective* sdir = dir->directives.at(i);
@@ -3941,7 +3944,7 @@ int SrsConfig::check_config()
                 && n != "security" && n != "http_remux"
                 && n != "http_static" && n != "hds" && n != "exec"
 #ifdef SRS_AUTO_DYNAMIC_CONFIG 
-                && n != "dynamic_transcode"
+                && n != "dynamic_transcode" && n != "dynamic_forward"
 #endif
             ) {
                 ret = ERROR_SYSTEM_CONFIG_INVALID;
@@ -5025,19 +5028,26 @@ int SrsConfig::get_global_chunk_size()
     return ::atoi(conf->arg0().c_str());
 }
 
-bool SrsConfig::get_forward_enabled(string vhost)
+SrsConfDirective* SrsConfig::get_forward(string vhost)
 {
-    static bool DEFAULT = false;
-    
     SrsConfDirective* conf = get_vhost(vhost);
     if (!conf) {
-        return DEFAULT;
+        return NULL;
     }
     
-    conf = conf->get("forward");
-    if (!conf) {
-        return DEFAULT;
-    }
+    return conf->get("forward");
+}
+
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+SrsConfDirective* SrsConfig::get_dynamic_forward(SrsRequest *req)
+{
+    return get_dynamic_config("dynamic_forward", req);
+}
+#endif
+
+bool SrsConfig::get_forward_enabled(SrsConfDirective* conf)
+{
+    static bool DEFAULT = false;
     
     conf = conf->get("enabled");
     if (!conf || conf->arg0().empty()) {
@@ -5047,18 +5057,8 @@ bool SrsConfig::get_forward_enabled(string vhost)
     return SRS_CONF_PERFER_FALSE(conf->arg0());
 }
 
-SrsConfDirective* SrsConfig::get_forwards(string vhost)
+SrsConfDirective* SrsConfig::get_forward_destinations(SrsConfDirective* conf)
 {
-    SrsConfDirective* conf = get_vhost(vhost);
-    if (!conf) {
-        return NULL;
-    }
-    
-    conf = conf->get("forward");
-    if (!conf) {
-        return NULL;
-    }
-    
     return conf->get("destination");
 }
 

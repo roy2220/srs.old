@@ -827,13 +827,20 @@ private:
 // forward section
 public:
     /**
-     * whether the forwarder enabled.
-     */
-    virtual bool                get_forward_enabled(std::string vhost);
-    /**
     * get the forward directive of vhost.
     */
-    virtual SrsConfDirective*   get_forwards(std::string vhost);
+    virtual SrsConfDirective*   get_forward(std::string vhost);
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    virtual SrsConfDirective*   get_dynamic_forward(SrsRequest *req);
+#endif
+    /**
+     * whether the forwarder enabled.
+     */
+    virtual bool                get_forward_enabled(SrsConfDirective* conf);
+    /**
+     * get the forward directive destinations.
+     */
+    virtual SrsConfDirective*   get_forward_destinations(SrsConfDirective* conf);
 // http_hooks section
 private:
     /**
