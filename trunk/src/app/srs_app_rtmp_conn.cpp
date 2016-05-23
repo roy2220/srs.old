@@ -403,12 +403,6 @@ int SrsRtmpConn::do_cycle()
     // set client ip to request.
     req->ip = ip;
     
-    // discovery vhost, resolve the vhost from config
-    SrsConfDirective* parsed_vhost = _srs_config->get_vhost(req->vhost);
-    if (parsed_vhost) {
-        req->vhost = parsed_vhost->arg0();
-    }
-    
     srs_info("discovery app success. schema=%s, vhost=%s, port=%s, app=%s",
         req->schema.c_str(), req->vhost.c_str(), req->port.c_str(), req->app.c_str());
     
@@ -476,7 +470,7 @@ int SrsRtmpConn::on_reload_vhost_removed(string vhost)
 {
     int ret = ERROR_SUCCESS;
     
-    if (req->vhost != vhost) {
+    if (req->real_vhost != vhost) {
         return ret;
     }
     
@@ -493,7 +487,7 @@ int SrsRtmpConn::on_reload_vhost_play(string vhost)
 {
     int ret = ERROR_SUCCESS;
     
-    if (req->vhost != vhost) {
+    if (req->real_vhost != vhost) {
         return ret;
     }
     
@@ -513,7 +507,7 @@ int SrsRtmpConn::on_reload_vhost_tcp_nodelay(string vhost)
 {
     int ret = ERROR_SUCCESS;
     
-    if (req->vhost != vhost) {
+    if (req->real_vhost != vhost) {
         return ret;
     }
     
@@ -526,7 +520,7 @@ int SrsRtmpConn::on_reload_vhost_realtime(string vhost)
 {
     int ret = ERROR_SUCCESS;
     
-    if (req->vhost != vhost) {
+    if (req->real_vhost != vhost) {
         return ret;
     }
     
@@ -543,7 +537,7 @@ int SrsRtmpConn::on_reload_vhost_publish(string vhost)
 {
     int ret = ERROR_SUCCESS;
     
-    if (req->vhost != vhost) {
+    if (req->real_vhost != vhost) {
         return ret;
     }
     
@@ -808,10 +802,7 @@ int SrsRtmpConn::check_vhost(bool try_default_vhost)
         return ret;
     }
     
-    if (req->vhost != vhost->arg0()) {
-        srs_trace("vhost change from %s to %s", req->vhost.c_str(), vhost->arg0().c_str());
-        req->vhost = vhost->arg0();
-    }
+    req->real_vhost = vhost->arg0();
     
     if (_srs_config->get_refer_enabled(req->vhost)) {
         if ((ret = refer->check(req->pageUrl, _srs_config->get_refer_all(req->vhost))) != ERROR_SUCCESS) {

@@ -551,6 +551,8 @@ public:
     std::string schema;
     // the vhost in tcUrl.
     std::string vhost;
+    // the actual vhost.
+    std::string real_vhost;
     // the host in tcUrl.
     std::string host;
     // the port in tcUrl.

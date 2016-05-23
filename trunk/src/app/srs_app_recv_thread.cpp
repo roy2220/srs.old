@@ -428,7 +428,7 @@ int SrsPublishRecvThread::on_reload_vhost_publish(string vhost)
 {
     int ret = ERROR_SUCCESS;
     
-    if (req->vhost != vhost) {
+    if (req->real_vhost != vhost) {
         return ret;
     }
 
@@ -468,7 +468,7 @@ int SrsPublishRecvThread::on_reload_vhost_realtime(string vhost)
 {
     int ret = ERROR_SUCCESS;
     
-    if (req->vhost != vhost) {
+    if (req->real_vhost != vhost) {
         return ret;
     }
     
