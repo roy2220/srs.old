@@ -1686,6 +1686,7 @@ SrsRequest* SrsRequest::copy()
     
     cp->ip = ip;
     cp->vhost = vhost;
+    cp->real_vhost = real_vhost;
     cp->app = app;
     cp->objectEncoding = objectEncoding;
     cp->pageUrl = pageUrl;

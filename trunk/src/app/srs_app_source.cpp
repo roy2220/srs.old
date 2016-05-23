@@ -1053,7 +1053,7 @@ int SrsSource::on_reload_vhost_play(string vhost)
 {
     int ret = ERROR_SUCCESS;
     
-    if (req->vhost != vhost) {
+    if (req->real_vhost != vhost) {
         return ret;
     }
     
@@ -1132,7 +1132,7 @@ int SrsSource::on_reload_vhost_forward(string vhost)
 {
     int ret = ERROR_SUCCESS;
     
-    if (req->vhost != vhost) {
+    if (req->real_vhost != vhost) {
         return ret;
     }
     
@@ -1154,7 +1154,7 @@ int SrsSource::on_reload_vhost_hls(string vhost)
 {
     int ret = ERROR_SUCCESS;
     
-    if (req->vhost != vhost) {
+    if (req->real_vhost != vhost) {
         return ret;
     }
     
@@ -1176,7 +1176,7 @@ int SrsSource::on_reload_vhost_hds(string vhost)
 {
     int ret = ERROR_SUCCESS;
 
-    if (req->vhost != vhost) {
+    if (req->real_vhost != vhost) {
         return ret;
     }
     
@@ -1198,7 +1198,7 @@ int SrsSource::on_reload_vhost_dvr(string vhost)
 {
     int ret = ERROR_SUCCESS;
     
-    if (req->vhost != vhost) {
+    if (req->real_vhost != vhost) {
         return ret;
     }
     
@@ -1229,7 +1229,7 @@ int SrsSource::on_reload_vhost_transcode(string vhost)
 {
     int ret = ERROR_SUCCESS;
     
-    if (req->vhost != vhost) {
+    if (req->real_vhost != vhost) {
         return ret;
     }
     
@@ -1251,7 +1251,7 @@ int SrsSource::on_reload_vhost_exec(string vhost)
 {
     int ret = ERROR_SUCCESS;
     
-    if (req->vhost != vhost) {
+    if (req->real_vhost != vhost) {
         return ret;
     }
     

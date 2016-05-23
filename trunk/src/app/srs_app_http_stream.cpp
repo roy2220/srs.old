@@ -788,12 +788,12 @@ int SrsHttpStreamServer::http_mount(SrsSource* s, SrsRequest* r)
     
     // create stream from template when not found.
     if (sflvs.find(sid) == sflvs.end()) {
-        if (tflvs.find(r->vhost) == tflvs.end()) {
+        if (tflvs.find(r->real_vhost) == tflvs.end()) {
             srs_info("ignore mount flv stream for disabled");
             return ret;
         }
 
-        SrsLiveEntry* tmpl = tflvs[r->vhost];
+        SrsLiveEntry* tmpl = tflvs[r->real_vhost];
 
         std::string mount = tmpl->mount;
 
@@ -971,12 +971,12 @@ int SrsHttpStreamServer::hls_update_m3u8(SrsRequest* r, string m3u8)
     
     // create stream from template when not found.
     if (shls.find(sid) == shls.end()) {
-        if (thls.find(r->vhost) == thls.end()) {
+        if (thls.find(r->real_vhost) == thls.end()) {
             srs_info("ignore mount hls stream for disabled");
             return ret;
         }
     
-        SrsHlsEntry* tmpl = thls[r->vhost];
+        SrsHlsEntry* tmpl = thls[r->real_vhost];
         srs_assert(tmpl);
         
         entry = new SrsHlsEntry();
@@ -1189,8 +1189,10 @@ int SrsHttpStreamServer::hijack(ISrsHttpMessage* request, ISrsHttpHandler** ph)
     srs_assert(hreq);
     
     // hijack for entry.
-    SrsRequest* r = hreq->to_request(vhost->arg0());
+    SrsRequest* r = hreq->to_request(request->host());
     SrsAutoFree(SrsRequest, r);
+
+    r->real_vhost = vhost->arg0();
 
     std::string sid = r->get_stream_url();
     // check whether the http remux is enabled,
