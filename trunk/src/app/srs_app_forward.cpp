@@ -76,16 +76,16 @@ SrsForwarder::~SrsForwarder()
     srs_freep(sh_audio);
 }
 
-int SrsForwarder::initialize(SrsRequest* r, string ep)
+int SrsForwarder::initialize(SrsRequest* r, string dest)
 {
     int ret = ERROR_SUCCESS;
     
     // it's ok to use the request object,
     // SrsSource already copy it and never delete it.
     req = r;
-    
-    // the ep(endpoint) to forward to
-    ep_forward = ep;
+
+    // the destination
+    destination = dest;
     
     return ret;
 }
@@ -98,37 +98,31 @@ void SrsForwarder::set_queue_size(double queue_size)
 int SrsForwarder::on_publish()
 {
     int ret = ERROR_SUCCESS;
+
+    // the ep(endpoint) to forward to
+    std::string ep_forward = srs_get_hostport(destination);
     
-    // discovery the server port and tcUrl from req and ep_forward.
+    // discovery the server from port ep_forward.
     std::string server;
-    std::string tcUrl;
     int port = SRS_CONSTS_RTMP_DEFAULT_PORT;
-    if (true) {
-        // parse host:port from hostport.
-        srs_parse_hostport(ep_forward, server, port);
+
+    // parse host:port from hostport.
+    srs_parse_hostport(ep_forward, server, port);
         
-        // generate tcUrl
-        tcUrl = srs_generate_tc_url(server, req->vhost, req->app, port, req->param);
-    }
-    
     // dead loop check
-    std::string source_ep = "rtmp://";
+    std::string source_ep;
     source_ep += req->host;
     source_ep += ":";
     source_ep += req->port;
-    source_ep += "?vhost=";
-    source_ep += req->vhost;
     
-    std::string dest_ep = "rtmp://";
-    if (ep_forward == SRS_CONSTS_LOCALHOST) {
+    std::string dest_ep;
+    if (server == SRS_CONSTS_LOCALHOST) {
         dest_ep += req->host;
     } else {
         dest_ep += server;
     }
     dest_ep += ":";
     dest_ep += port;
-    dest_ep += "?vhost=";
-    dest_ep += req->vhost;
     
     if (source_ep == dest_ep) {
         ret = ERROR_SYSTEM_FORWARD_LOOP;
@@ -137,7 +131,7 @@ int SrsForwarder::on_publish()
         return ret;
     }
     srs_trace("start forward %s to %s, tcUrl=%s, stream=%s", 
-        source_ep.c_str(), dest_ep.c_str(), tcUrl.c_str(),
+        source_ep.c_str(), dest_ep.c_str(), generate_destination_url().c_str(),
         req->stream.c_str());
     
     if ((ret = pthread->start()) != ERROR_SUCCESS) {
@@ -226,17 +220,7 @@ int SrsForwarder::cycle()
 {
     int ret = ERROR_SUCCESS;
     
-    std::string url;
-    if (true) {
-        std::string server;
-        int port = SRS_CONSTS_RTMP_DEFAULT_PORT;
-        
-        // parse host:port from hostport.
-        srs_parse_hostport(ep_forward, server, port);
-        
-        // generate url
-        url = srs_generate_rtmp_url(server, port, req->vhost, req->app, req->stream);
-    }
+    std::string url = generate_destination_url();
     
     int64_t cto = SRS_FORWARDER_SLEEP_US;
     int64_t sto = SRS_CONSTS_RTMP_TIMEOUT_US;
@@ -334,4 +318,7 @@ int SrsForwarder::forward()
     return ret;
 }
 
-
+std::string SrsForwarder::generate_destination_url()
+{
+    return srs_path_build_stream(destination, req->vhost, req->app, req->stream);
+}

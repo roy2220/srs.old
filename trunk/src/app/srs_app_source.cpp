@@ -2278,13 +2278,13 @@ int SrsSource::create_forwarders()
     
     SrsConfDirective* conf = _srs_config->get_forwards(req->vhost);
     for (int i = 0; conf && i < (int)conf->args.size(); i++) {
-        std::string forward_server = conf->args.at(i);
+        std::string destination = conf->args.at(i);
         
         SrsForwarder* forwarder = new SrsForwarder(this);
         forwarders.push_back(forwarder);
         
         // initialize the forwarder with request.
-        if ((ret = forwarder->initialize(req, forward_server)) != ERROR_SUCCESS) {
+        if ((ret = forwarder->initialize(req, destination)) != ERROR_SUCCESS) {
             return ret;
         }
     
@@ -2295,7 +2295,7 @@ int SrsSource::create_forwarders()
             srs_error("start forwarder failed. "
                 "vhost=%s, app=%s, stream=%s, forward-to=%s",
                 req->vhost.c_str(), req->app.c_str(), req->stream.c_str(),
-                forward_server.c_str());
+                destination.c_str());
             return ret;
         }
     }
