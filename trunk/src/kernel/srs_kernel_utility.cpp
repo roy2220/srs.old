@@ -179,6 +179,23 @@ string srs_dns_resolve(string host)
     return ipv4;
 }
 
+string srs_get_hostport(string url)
+{
+    size_t begin = 0;
+    size_t end = url.size();
+    size_t pos;
+
+    if ((pos = url.find("://")) != std::string::npos) {
+        begin = pos + 3;
+    }
+
+    if ((pos = url.find('/', begin)) != std::string::npos) {
+        end = pos;
+    }
+
+    return url.substr(begin, end - begin);
+}
+
 void srs_parse_hostport(const string& hostport, string& host, int& port)
 {
     size_t pos = hostport.find(":");

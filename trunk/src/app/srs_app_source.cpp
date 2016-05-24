@@ -2280,13 +2280,13 @@ int SrsSource::create_forwarders()
         if (_srs_config->get_forward_enabled(forward)
             && (destinations = _srs_config->get_forward_destinations(forward)) != NULL) {
             for (int i = 0; i < (int)destinations->args.size(); i++) {
-                std::string forward_server = destinations->args.at(i);
+                std::string destination = destinations->args.at(i);
                 
                 SrsForwarder* forwarder = new SrsForwarder(this);
                 forwarders.push_back(forwarder);
                 
                 // initialize the forwarder with request.
-                if ((ret = forwarder->initialize(req, forward_server)) != ERROR_SUCCESS) {
+                if ((ret = forwarder->initialize(req, destination)) != ERROR_SUCCESS) {
                     return ret;
                 }
             
@@ -2297,7 +2297,7 @@ int SrsSource::create_forwarders()
                     srs_error("start forwarder failed. "
                         "vhost=%s, app=%s, stream=%s, forward-to=%s",
                         req->vhost.c_str(), req->app.c_str(), req->stream.c_str(),
-                        forward_server.c_str());
+                        destination.c_str());
                     return ret;
                 }
             }
@@ -2309,13 +2309,13 @@ int SrsSource::create_forwarders()
         && _srs_config->get_forward_enabled(forward)
         && (destinations = _srs_config->get_forward_destinations(forward)) != NULL) {
         for (int i = 0; i < (int)destinations->args.size(); i++) {
-            std::string forward_server = destinations->args.at(i);
+            std::string destination = destinations->args.at(i);
             
             SrsForwarder* forwarder = new SrsForwarder(this);
             forwarders.push_back(forwarder);
             
             // initialize the forwarder with request.
-            if ((ret = forwarder->initialize(req, forward_server)) != ERROR_SUCCESS) {
+            if ((ret = forwarder->initialize(req, destination)) != ERROR_SUCCESS) {
                 return ret;
             }
         
@@ -2326,7 +2326,7 @@ int SrsSource::create_forwarders()
                 srs_error("start forwarder failed. "
                     "vhost=%s, app=%s, stream=%s, forward-to=%s",
                     req->vhost.c_str(), req->app.c_str(), req->stream.c_str(),
-                    forward_server.c_str());
+                    destination.c_str());
                 return ret;
             }
         }
