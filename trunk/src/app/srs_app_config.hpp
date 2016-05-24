@@ -91,8 +91,8 @@ namespace _srs_internal
          * whether buffer is empty.
          */
         virtual bool empty();
-    private:
 #ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    private:
         virtual int do_post(SrsHttpClient* hc, std::string url, std::string req, int& code, std::string& res);
 #endif
     };
