@@ -126,6 +126,7 @@ Options:
   --with-stream-caster      enable stream caster to serve other stream over other protocol.
   --with-kafka              enable srs kafka producer to report to kafka.
   --with-http-api           enable http api, to manage SRS by http api.
+  --with-dynamic-config     enable dynamic configuration.
   --with-ffmpeg             enable transcoding tool ffmpeg.
   --with-transcode          enable transcoding features.
   --with-ingest             enable ingest features.
@@ -152,6 +153,7 @@ Options:
   --without-stream-caster   disable stream caster, only listen and serve RTMP/HTTP.
   --without-kafka           disable the srs kafka producer.
   --without-http-api        disable http api, only use console to manage SRS process.
+  --without-dynamic-config  disable dynamic configuration.
   --without-ffmpeg          disable the ffmpeg transcode tool feature.
   --without-transcode       disable the transcoding feature.
   --without-ingest          disable the ingest feature.
