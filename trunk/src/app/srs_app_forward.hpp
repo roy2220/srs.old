@@ -52,10 +52,8 @@ class SrsSimpleRtmpClient;
 class SrsForwarder : public ISrsReusableThread2Handler
 {
 private:
-    // the destination, server[:port]/{app}?vhost={vhost}/{stream}.
+    // the destination, server:port/[app]?vhost=[vhost]/[stream].
     std::string destination;
-    // the ep to forward, server[:port].
-    std::string ep_forward;
     SrsRequest* req;
 private:
     SrsReusableThread2* pthread;
