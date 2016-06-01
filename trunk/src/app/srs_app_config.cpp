@@ -3856,7 +3856,8 @@ int SrsConfig::check_config()
             } else if (n == "cluster") {
                 for (int j = 0; j < (int)conf->directives.size(); j++) {
                     string m = conf->at(j)->name.c_str();
-                    if (m != "mode" && m != "origin" && m != "token_traverse" && m != "vhost" && m != "debug_srs_upnode") {
+                    if (m != "mode" && m != "origin" && m != "token_traverse" && m != "vhost" && m != "debug_srs_upnode"
+                        && m != "publish_local") {
                         ret = ERROR_SYSTEM_CONFIG_INVALID;
                         srs_error("unsupported vhost cluster directive %s, ret=%d", m.c_str(), ret);
                         return ret;
@@ -5216,6 +5217,28 @@ string SrsConfig::get_vhost_edge_transform_vhost(string vhost)
     }
     
     return conf->arg0();
+}
+
+bool SrsConfig::get_vhost_edge_publish_local(string vhost)
+{
+    static bool DEFAULT = false;
+    
+    SrsConfDirective* conf = get_vhost(vhost);
+    if (!conf) {
+        return DEFAULT;
+    }
+    
+    conf = conf->get("cluster");
+    if (!conf) {
+        return DEFAULT;
+    }
+    
+    conf = conf->get("publish_local");
+    if (!conf || conf->arg0().empty()) {
+        return DEFAULT;
+    }
+    
+    return SRS_CONF_PERFER_FALSE(conf->arg0());
 }
 
 bool SrsConfig::get_security_enabled(string vhost)

@@ -176,10 +176,12 @@ private:
     virtual int do_playing(SrsSource* source, SrsConsumer* consumer, SrsQueueRecvThread* trd);
     virtual int publishing(SrsSource* source);
     virtual int do_publishing(SrsSource* source, SrsPublishRecvThread* trd);
-    virtual int acquire_publish(SrsSource* source, bool is_edge);
-    virtual void release_publish(SrsSource* source, bool is_edge);
-    virtual int handle_publish_message(SrsSource* source, SrsCommonMessage* msg, bool is_fmle, bool vhost_is_edge);
-    virtual int process_publish_message(SrsSource* source, SrsCommonMessage* msg, bool vhost_is_edge);
+    virtual int acquire_publish(SrsSource* source, bool is_edge, bool edge_publish_local);
+    virtual void release_publish(SrsSource* source, bool is_edge, bool edge_publish_local);
+    virtual int handle_publish_message(SrsSource* source, SrsCommonMessage* msg,
+                                       bool is_fmle, bool vhost_is_edge, bool edge_publish_local);
+    virtual int process_publish_message(SrsSource* source, SrsCommonMessage* msg,
+                                        bool vhost_is_edge, bool edge_publish_local);
     virtual int process_play_control_msg(SrsConsumer* consumer, SrsCommonMessage* msg);
     virtual void change_mw_sleep(int sleep_ms);
     virtual void set_sock_options();

@@ -1379,10 +1379,11 @@ int SrsSource::source_id()
     return _source_id;
 }
 
-bool SrsSource::can_publish(bool is_edge)
+bool SrsSource::can_publish(bool is_edge, bool edge_publish_local)
 {
     if (is_edge) {
-        return publish_edge->can_publish();
+        bool ret = publish_edge->can_publish();
+        return edge_publish_local ? (ret && _can_publish) : ret;
     }
 
     return _can_publish;
@@ -2218,7 +2219,7 @@ int SrsSource::create_consumer(SrsConnection* conn, SrsConsumer*& consumer, bool
     }
 
     // for edge, when play edge stream, check the state
-    if (_srs_config->get_vhost_is_edge(req->vhost)) {
+    if (_can_publish && _srs_config->get_vhost_is_edge(req->vhost)) {
         // notice edge to start for the first client.
         if ((ret = play_edge->on_client_play()) != ERROR_SUCCESS) {
             srs_error("notice edge start play stream failed. ret=%d", ret);
