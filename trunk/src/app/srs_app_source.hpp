@@ -549,7 +549,7 @@ public:
     virtual int source_id();
 // logic data methods
 public:
-    virtual bool can_publish(bool is_edge);
+    virtual bool can_publish(bool is_edge, bool edge_publish_local);
     virtual int on_meta_data(SrsCommonMessage* msg, SrsOnMetaDataPacket* metadata);
 public:
     virtual int on_audio(SrsCommonMessage* audio);

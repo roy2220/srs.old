@@ -1054,11 +1054,12 @@ int SrsRtmpConn::publishing(SrsSource* source)
     }
 
     bool vhost_is_edge = _srs_config->get_vhost_is_edge(req->vhost);
-    if ((ret = acquire_publish(source, vhost_is_edge)) == ERROR_SUCCESS) {
+    bool edge_publish_local = _srs_config->get_vhost_edge_publish_local(req->vhost);
+    if ((ret = acquire_publish(source, vhost_is_edge, edge_publish_local)) == ERROR_SUCCESS) {
         // use isolate thread to recv,
         // @see: https://github.com/ossrs/srs/issues/237
         SrsPublishRecvThread trd(rtmp, req, 
-            st_netfd_fileno(stfd), 0, this, source, true, vhost_is_edge);
+            st_netfd_fileno(stfd), 0, this, source, true, vhost_is_edge, edge_publish_local);
 
         srs_info("start to publish stream %s success", req->stream.c_str());
         ret = do_publishing(source, &trd);
@@ -1073,7 +1074,7 @@ int SrsRtmpConn::publishing(SrsSource* source)
     // @see https://github.com/ossrs/srs/issues/474
     // @remark when stream is busy, should never release it.
     if (ret != ERROR_SYSTEM_STREAM_BUSY) {
-        release_publish(source, vhost_is_edge);
+        release_publish(source, vhost_is_edge, edge_publish_local);
     }
 
     http_hooks_on_unpublish();
@@ -1167,11 +1168,11 @@ int SrsRtmpConn::do_publishing(SrsSource* source, SrsPublishRecvThread* trd)
     return ret;
 }
 
-int SrsRtmpConn::acquire_publish(SrsSource* source, bool is_edge)
+int SrsRtmpConn::acquire_publish(SrsSource* source, bool is_edge, bool edge_publish_local)
 {
     int ret = ERROR_SUCCESS;
 
-    if (!source->can_publish(is_edge)) {
+    if (!source->can_publish(is_edge, edge_publish_local)) {
         ret = ERROR_SYSTEM_STREAM_BUSY;
         srs_warn("stream %s is already publishing. ret=%d", 
             req->get_stream_url().c_str(), ret);
@@ -1184,6 +1185,13 @@ int SrsRtmpConn::acquire_publish(SrsSource* source, bool is_edge)
             srs_error("notice edge start publish stream failed. ret=%d", ret);
             return ret;
         }        
+
+        if (edge_publish_local) {
+            if ((ret = source->on_publish()) != ERROR_SUCCESS) {
+                srs_error("notify publish failed. ret=%d", ret);
+                return ret;
+            }
+        }
     } else {
         if ((ret = source->on_publish()) != ERROR_SUCCESS) {
             srs_error("notify publish failed. ret=%d", ret);
@@ -1194,18 +1202,23 @@ int SrsRtmpConn::acquire_publish(SrsSource* source, bool is_edge)
     return ret;
 }
     
-void SrsRtmpConn::release_publish(SrsSource* source, bool is_edge)
+void SrsRtmpConn::release_publish(SrsSource* source, bool is_edge, bool edge_publish_local)
 {
     // when edge, notice edge to change state.
     // when origin, notice all service to unpublish.
     if (is_edge) {
         source->on_edge_proxy_unpublish();
+
+        if (edge_publish_local) {
+            source->on_unpublish();
+        }
     } else {
         source->on_unpublish();
     }
 }
 
-int SrsRtmpConn::handle_publish_message(SrsSource* source, SrsCommonMessage* msg, bool is_fmle, bool vhost_is_edge)
+int SrsRtmpConn::handle_publish_message(SrsSource* source, SrsCommonMessage* msg,
+                                        bool is_fmle, bool vhost_is_edge, bool edge_publish_local)
 {
     int ret = ERROR_SUCCESS;
     
@@ -1240,7 +1253,7 @@ int SrsRtmpConn::handle_publish_message(SrsSource* source, SrsCommonMessage* msg
     }
 
     // video, audio, data message
-    if ((ret = process_publish_message(source, msg, vhost_is_edge)) != ERROR_SUCCESS) {
+    if ((ret = process_publish_message(source, msg, vhost_is_edge, edge_publish_local)) != ERROR_SUCCESS) {
         srs_error("fmle process publish message failed. ret=%d", ret);
         return ret;
     }
@@ -1248,17 +1261,32 @@ int SrsRtmpConn::handle_publish_message(SrsSource* source, SrsCommonMessage* msg
     return ret;
 }
 
-int SrsRtmpConn::process_publish_message(SrsSource* source, SrsCommonMessage* msg, bool vhost_is_edge)
+int SrsRtmpConn::process_publish_message(SrsSource* source, SrsCommonMessage* msg,
+                                         bool vhost_is_edge, bool edge_publish_local)
 {
     int ret = ERROR_SUCCESS;
     
     // for edge, directly proxy message to origin.
     if (vhost_is_edge) {
-        if ((ret = source->on_edge_proxy_publish(msg)) != ERROR_SUCCESS) {
+        if (!edge_publish_local) {
+            if ((ret = source->on_edge_proxy_publish(msg)) != ERROR_SUCCESS) {
+                srs_error("edge publish proxy msg failed. ret=%d", ret);
+                return ret;
+            }
+
+            return ret;
+        }
+
+        SrsCommonMessage msg_copy;
+        msg_copy.header = msg->header;
+        msg_copy.create_payload(msg->size);
+        memcpy(msg_copy.payload, msg->payload, msg->size);
+        msg_copy.size = msg->size;
+
+        if ((ret = source->on_edge_proxy_publish(&msg_copy)) != ERROR_SUCCESS) {
             srs_error("edge publish proxy msg failed. ret=%d", ret);
             return ret;
         }
-        return ret;
     }
     
     // process audio packet

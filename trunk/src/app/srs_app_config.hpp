@@ -954,6 +954,11 @@ public:
      * @see https://github.com/ossrs/srs/issues/372
      */
     virtual std::string         get_vhost_edge_transform_vhost(std::string vhost);
+    /**
+     * whether to publish stream to edge local, while publishing stream to 
+     * origin via edge.
+     */
+    virtual bool                get_vhost_edge_publish_local(std::string vhost);
 // vhost security section
 public:
     /**
