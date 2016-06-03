@@ -2253,7 +2253,7 @@ void SrsSource::on_consumer_destroy(SrsConsumer* consumer)
     }
     srs_info("handle consumer destroy success.");
     
-    if (!consumer->is_encoder() && consumers.size() == encoder_consumer_count) {
+    if (!consumer->is_encoder() && (int)consumers.size() == encoder_consumer_count) {
         play_edge->on_all_client_stop();
     }
 }
