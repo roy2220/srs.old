@@ -473,6 +473,10 @@ int SrsEdgeForwarder::start()
 
         srs_warn("edge push %s failed, cto=%"PRId64", sto=%"PRId64". ret=%d", url.c_str(), cto, sto, ret);
     }
+
+    if (ret != ERROR_SUCCESS) {
+        return ret;
+    }
         
     if ((ret = sdk->publish()) != ERROR_SUCCESS) {
         srs_error("edge push publish failed. ret=%d", ret);
