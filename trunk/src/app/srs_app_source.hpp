@@ -252,7 +252,7 @@ public:
     virtual void update_source_id();
 public:
     /**
-    * whether the consumer is encoder
+    * whether the consumer is encoder.
     */
     virtual bool is_encoder();
     /**
@@ -460,7 +460,7 @@ private:
     SrsRequest* req;
     // to delivery stream to clients.
     std::vector<SrsConsumer*> consumers;
-    // number of encoder consumers
+    // number of encoder consumers.
     int encoder_consumer_count;
     // the time jitter algorithm for vhost.
     SrsRtmpJitterAlgorithm jitter_algorithm;
