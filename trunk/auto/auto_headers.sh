@@ -16,6 +16,7 @@ echo "#define SRS_AUTO_BUILD_DATE \"`date \"+%Y-%m-%d %H:%M:%S\"`\"" >> $SRS_AUT
 echo "#define SRS_AUTO_UNAME \"`uname -a`\"" >> $SRS_AUTO_HEADERS_H
 echo "#define SRS_AUTO_USER_CONFIGURE \"${SRS_AUTO_USER_CONFIGURE}\"" >> $SRS_AUTO_HEADERS_H
 echo "#define SRS_AUTO_CONFIGURE \"${SRS_AUTO_CONFIGURE}\"" >> $SRS_AUTO_HEADERS_H
+echo "#define SRS_AUTO_ENCODER_CONSUMER_ID \"`uuidgen -r`\"" >> $SRS_AUTO_HEADERS_H
 echo "" >> $SRS_AUTO_HEADERS_H
 
 function srs_define_macro()

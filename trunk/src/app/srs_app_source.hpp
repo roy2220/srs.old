@@ -226,8 +226,7 @@ private:
     SrsRtmpJitter* jitter;
     SrsSource* source;
     SrsMessageQueue* queue;
-    // the owner connection for debug, maybe NULL.
-    SrsConnection* conn;
+    bool is_encoder1;
     bool paused;
     // when source id changed, notice all consumers
     bool should_update_source_id;
@@ -240,7 +239,7 @@ private:
     int mw_duration;
 #endif
 public:
-    SrsConsumer(SrsSource* s, SrsConnection* c);
+    SrsConsumer(SrsSource* s, bool encoder_consumer);
     virtual ~SrsConsumer();
 public:
     /**
@@ -252,6 +251,10 @@ public:
     */
     virtual void update_source_id();
 public:
+    /**
+    * whether the consumer is encoder
+    */
+    virtual bool is_encoder();
     /**
     * get current client time, the last packet time.
     */
@@ -457,6 +460,8 @@ private:
     SrsRequest* req;
     // to delivery stream to clients.
     std::vector<SrsConsumer*> consumers;
+    // number of encoder consumers
+    int encoder_consumer_count;
     // the time jitter algorithm for vhost.
     SrsRtmpJitterAlgorithm jitter_algorithm;
     // for play, whether use interlaced/mixed algorithm to correct timestamp.
@@ -578,7 +583,7 @@ public:
     * @param dg, whether dumps the gop cache.
     */
     virtual int create_consumer(
-        SrsConnection* conn, SrsConsumer*& consumer,
+        SrsRequest* r, SrsConsumer*& consumer,
         bool ds = true, bool dm = true, bool dg = true
     );
     virtual void on_consumer_destroy(SrsConsumer* consumer);

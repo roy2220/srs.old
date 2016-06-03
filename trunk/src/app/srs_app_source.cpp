@@ -419,10 +419,10 @@ ISrsWakable::~ISrsWakable()
 {
 }
 
-SrsConsumer::SrsConsumer(SrsSource* s, SrsConnection* c)
+SrsConsumer::SrsConsumer(SrsSource* s, bool encoder_consumer)
 {
     source = s;
-    conn = c;
+    is_encoder1 = encoder_consumer;
     paused = false;
     jitter = new SrsRtmpJitter();
     queue = new SrsMessageQueue();
@@ -445,6 +445,10 @@ SrsConsumer::~SrsConsumer()
 #ifdef SRS_PERF_QUEUE_COND_WAIT
     st_cond_destroy(mw_wait);
 #endif
+}
+
+bool SrsConsumer::is_encoder() {
+    return is_encoder1;
 }
 
 void SrsConsumer::set_queue_size(double queue_size)
@@ -902,6 +906,7 @@ SrsSharedPtrMessage* SrsMixQueue::pop()
 SrsSource::SrsSource()
 {
     req = NULL;
+    encoder_consumer_count = 0;
     jitter_algorithm = SrsRtmpJitterAlgorithmOFF;
     mix_correct = false;
     mix_queue = new SrsMixQueue();
@@ -2160,12 +2165,17 @@ void SrsSource::on_unpublish()
     handler->on_unpublish(this, req);
 }
 
-int SrsSource::create_consumer(SrsConnection* conn, SrsConsumer*& consumer, bool ds, bool dm, bool dg)
+int SrsSource::create_consumer(SrsRequest* r, SrsConsumer*& consumer, bool ds, bool dm, bool dg)
 {
     int ret = ERROR_SUCCESS;
     
-    consumer = new SrsConsumer(this, conn);
+    bool encoder_consumer = r->param.find(SRS_AUTO_ENCODER_CONSUMER_ID) != std::string::npos;
+    consumer = new SrsConsumer(this, encoder_consumer);
     consumers.push_back(consumer);
+
+    if (encoder_consumer) {
+        ++encoder_consumer_count;
+    }
     
     double queue_size = _srs_config->get_queue_length(req->vhost);
     consumer->set_queue_size(queue_size);
@@ -2235,10 +2245,14 @@ void SrsSource::on_consumer_destroy(SrsConsumer* consumer)
     it = std::find(consumers.begin(), consumers.end(), consumer);
     if (it != consumers.end()) {
         consumers.erase(it);
+
+        if (consumer->is_encoder()) {
+            --encoder_consumer_count;
+        }
     }
     srs_info("handle consumer destroy success.");
     
-    if (consumers.empty()) {
+    if (!consumer->is_encoder() && consumers.size() == encoder_consumer_count) {
         play_edge->on_all_client_stop();
     }
 }

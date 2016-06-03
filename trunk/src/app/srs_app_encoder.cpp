@@ -267,6 +267,8 @@ int SrsEncoder::initialize_ffmpeg(SrsFFMPEG* ffmpeg, SrsRequest* req, SrsConfDir
     input += req->app;
     input += "?vhost=";
     input += req->vhost;
+    input += ",";
+    input += SRS_AUTO_ENCODER_CONSUMER_ID;
     input += "/";
     input += req->stream;
 
