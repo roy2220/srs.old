@@ -274,6 +274,7 @@ int SrsEncoder::initialize_ffmpeg(SrsFFMPEG* ffmpeg, SrsRequest* req, SrsConfDir
     int ret = ERROR_SUCCESS;
 
     std::string input;
+    size_t pos;
     // input stream, from local.
     // ie. rtmp://localhost:1935/live/livestream
     input = "rtmp://";
@@ -284,6 +285,7 @@ int SrsEncoder::initialize_ffmpeg(SrsFFMPEG* ffmpeg, SrsRequest* req, SrsConfDir
     input += req->app;
     input += "?vhost=";
     input += req->vhost;
+    pos = input.size();
     input += "/";
     input += req->stream;
 
@@ -328,6 +330,8 @@ int SrsEncoder::initialize_ffmpeg(SrsFFMPEG* ffmpeg, SrsRequest* req, SrsConfDir
         return ret;
     }
     _transcoded_url.push_back(output);
+
+    input.insert(pos, "," SRS_AUTO_ENCODER_CONSUMER_ID);
     
     if ((ret = ffmpeg->initialize(input, output, log_file)) != ERROR_SUCCESS) {
         return ret;
