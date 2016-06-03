@@ -445,32 +445,35 @@ int SrsEdgeForwarder::start()
     // reset the error code.
     send_error_code = ERROR_SUCCESS;
     
-    std::string url;
-    if (true) {
-        SrsConfDirective* conf = _srs_config->get_vhost_edge_origin(req->vhost);
-        srs_assert(conf);
+    SrsConfDirective* conf = _srs_config->get_vhost_edge_origin(req->vhost);
+    srs_assert(conf);
+
+    for (int n = (int)conf->args.size(); n >= 1; --n) {
+        std::string url;
+        if (true) {
+            // select the origin.
+            std::string server = lb->select(conf->args);
+            int port = SRS_CONSTS_RTMP_DEFAULT_PORT;
+            srs_parse_hostport(server, server, port);
+            
+            // support vhost tranform for edge,
+            // @see https://github.com/ossrs/srs/issues/372
+            std::string vhost = _srs_config->get_vhost_edge_transform_vhost(req->vhost);
+            vhost = srs_string_replace(vhost, "[vhost]", req->vhost);
+            
+            url = srs_generate_rtmp_url(server, port, vhost, req->app, req->stream);
+        }
         
-        // select the origin.
-        std::string server = lb->select(conf->args);
-        int port = SRS_CONSTS_RTMP_DEFAULT_PORT;
-        srs_parse_hostport(server, server, port);
-        
-        // support vhost tranform for edge,
-        // @see https://github.com/ossrs/srs/issues/372
-        std::string vhost = _srs_config->get_vhost_edge_transform_vhost(req->vhost);
-        vhost = srs_string_replace(vhost, "[vhost]", req->vhost);
-        
-        url = srs_generate_rtmp_url(server, port, vhost, req->app, req->stream);
-    }
-    
-    // open socket.
-    int64_t cto = SRS_EDGE_FORWARDER_TIMEOUT_US;
-    int64_t sto = SRS_CONSTS_RTMP_TIMEOUT_US;
-    if ((ret = sdk->connect(url, cto, sto)) != ERROR_SUCCESS) {
+        // open socket.
+        int64_t cto = SRS_EDGE_FORWARDER_TIMEOUT_US;
+        int64_t sto = SRS_CONSTS_RTMP_TIMEOUT_US;
+        if ((ret = sdk->connect(url, cto, sto)) == ERROR_SUCCESS) {
+            break;
+        }
+
         srs_warn("edge push %s failed, cto=%"PRId64", sto=%"PRId64". ret=%d", url.c_str(), cto, sto, ret);
-        return ret;
     }
-    
+        
     if ((ret = sdk->publish()) != ERROR_SUCCESS) {
         srs_error("edge push publish failed. ret=%d", ret);
         return ret;
