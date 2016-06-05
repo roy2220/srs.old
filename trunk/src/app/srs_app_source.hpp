@@ -37,10 +37,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <srs_app_st.hpp>
 #include <srs_app_reload.hpp>
 #include <srs_core_performance.hpp>
-
-#ifdef SRS_AUTO_DYNAMIC_CONFIG 
 #include <srs_app_config.hpp>
-#endif
 
 class SrsConsumer;
 class SrsPlayEdge;
