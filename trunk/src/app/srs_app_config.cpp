@@ -2373,11 +2373,8 @@ int SrsConfig::global_to_json(SrsJsonObject* obj)
         if (!get_vhost_is_edge(dir->arg0())) {
             sobj->set("origin", SrsJsonAny::boolean(true));
         }
-        if (true) {
-            SrsConfDirective* sdir = get_forward(dir->arg0());
-            if (sdir != NULL && get_forward_enabled(sdir)) {
-                sobj->set("forward", SrsJsonAny::boolean(true));
-            }
+        if (get_forward_enabled(get_forward(dir->arg0()))) {
+            sobj->set("forward", SrsJsonAny::boolean(true));
         }
         
         if (get_security_enabled(dir->arg0())) {
@@ -5048,6 +5045,10 @@ SrsConfDirective* SrsConfig::get_dynamic_forward(SrsRequest *req)
 bool SrsConfig::get_forward_enabled(SrsConfDirective* conf)
 {
     static bool DEFAULT = false;
+
+    if (!conf) {
+        return DEFAULT;
+    }
     
     conf = conf->get("enabled");
     if (!conf || conf->arg0().empty()) {
@@ -5059,6 +5060,10 @@ bool SrsConfig::get_forward_enabled(SrsConfDirective* conf)
 
 SrsConfDirective* SrsConfig::get_forward_destinations(SrsConfDirective* conf)
 {
+    if (!conf) {
+        return NULL;
+    }
+
     return conf->get("destination");
 }
 

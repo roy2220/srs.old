@@ -2271,64 +2271,44 @@ void SrsSource::on_edge_proxy_unpublish()
 int SrsSource::create_forwarders()
 {
     int ret = ERROR_SUCCESS;
-    SrsConfDirective* forward;
-    SrsConfDirective* destinations;
 
 #ifdef SRS_AUTO_DYNAMIC_CONFIG 
-    if ((forward = _srs_config->get_dynamic_forward(req)) != NULL) {
-        SrsAutoFree(SrsConfDirective, forward);
-        if (_srs_config->get_forward_enabled(forward)
-            && (destinations = _srs_config->get_forward_destinations(forward)) != NULL) {
-            for (int i = 0; i < (int)destinations->args.size(); i++) {
-                std::string destination = destinations->args.at(i);
-                
-                SrsForwarder* forwarder = new SrsForwarder(this);
-                forwarders.push_back(forwarder);
-                
-                // initialize the forwarder with request.
-                if ((ret = forwarder->initialize(req, destination)) != ERROR_SUCCESS) {
-                    return ret;
-                }
-            
-                double queue_size = _srs_config->get_queue_length(req->vhost);
-                forwarder->set_queue_size(queue_size);
-                
-                if ((ret = forwarder->on_publish()) != ERROR_SUCCESS) {
-                    srs_error("start forwarder failed. "
-                        "vhost=%s, app=%s, stream=%s, forward-to=%s",
-                        req->vhost.c_str(), req->app.c_str(), req->stream.c_str(),
-                        destination.c_str());
-                    return ret;
-                }
-            }
-        }
-    }
+    SrsConfDirective* dyn_conf = _srs_config->get_dynamic_forward(req);
+    SrsAutoFree(SrsConfDirective, dyn_conf);
+    SrsConfDirective* conf = dyn_conf;
+#else
+    SrsConfDirective* conf = NULL;
 #endif
 
-    if ((forward = _srs_config->get_forward(req->vhost)) != NULL
-        && _srs_config->get_forward_enabled(forward)
-        && (destinations = _srs_config->get_forward_destinations(forward)) != NULL) {
-        for (int i = 0; i < (int)destinations->args.size(); i++) {
-            std::string destination = destinations->args.at(i);
-            
-            SrsForwarder* forwarder = new SrsForwarder(this);
-            forwarders.push_back(forwarder);
-            
-            // initialize the forwarder with request.
-            if ((ret = forwarder->initialize(req, destination)) != ERROR_SUCCESS) {
-                return ret;
-            }
+    if (conf == NULL) {
+        conf = _srs_config->get_forward(req->vhost);
+    }
+
+    if (!_srs_config->get_forward_enabled(conf)
+        || (conf = _srs_config->get_forward_destinations(conf)) == NULL) {
+        return ret;
+    }
+
+    for (int i = 0; i < (int)conf->args.size(); i++) {
+        std::string destination = conf->args.at(i);
         
-            double queue_size = _srs_config->get_queue_length(req->vhost);
-            forwarder->set_queue_size(queue_size);
-            
-            if ((ret = forwarder->on_publish()) != ERROR_SUCCESS) {
-                srs_error("start forwarder failed. "
-                    "vhost=%s, app=%s, stream=%s, forward-to=%s",
-                    req->vhost.c_str(), req->app.c_str(), req->stream.c_str(),
-                    destination.c_str());
-                return ret;
-            }
+        SrsForwarder* forwarder = new SrsForwarder(this);
+        forwarders.push_back(forwarder);
+        
+        // initialize the forwarder with request.
+        if ((ret = forwarder->initialize(req, destination)) != ERROR_SUCCESS) {
+            return ret;
+        }
+    
+        double queue_size = _srs_config->get_queue_length(req->vhost);
+        forwarder->set_queue_size(queue_size);
+        
+        if ((ret = forwarder->on_publish()) != ERROR_SUCCESS) {
+            srs_error("start forwarder failed. "
+                "vhost=%s, app=%s, stream=%s, forward-to=%s",
+                req->vhost.c_str(), req->app.c_str(), req->stream.c_str(),
+                destination.c_str());
+            return ret;
         }
     }
 

@@ -1458,7 +1458,7 @@ VOID TEST(ConfigMainTest, ParseFullConf)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -1540,7 +1540,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_same_edge)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_publish(vhost));
@@ -1621,7 +1621,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_change_edge)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_publish(vhost));
@@ -1696,7 +1696,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_dvr)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_publish(vhost));
@@ -1771,7 +1771,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_ingest)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_publish(vhost));
@@ -1867,7 +1867,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_http)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_publish(vhost));
@@ -1945,7 +1945,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_hls_enabled)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_publish(vhost));
@@ -2023,7 +2023,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_hls_disabled)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_publish(vhost));
@@ -2101,7 +2101,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_http_hooks)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_TRUE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL != conf.get_vhost_on_connect(vhost));
     if (true) {
@@ -2210,7 +2210,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_min_delay)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -2304,7 +2304,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_refer_anti_suck)
         EXPECT_STREQ("github.io", refer->arg1().c_str());
     }
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -2385,7 +2385,6 @@ VOID TEST(ConfigMainTest, ParseFullConf_forward_same_vhost)
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
     if (true) {
         SrsConfDirective* forward = conf.get_forward(vhost);
-        EXPECT_FALSE(forward == NULL);
         EXPECT_TRUE(conf.get_forward_enabled(forward));
         SrsConfDirective* destinations = conf.get_forward_destinations(forward);
         EXPECT_FALSE(destinations == NULL);
@@ -2471,7 +2470,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_forward_change_vhost)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -2550,7 +2549,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_mirror)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -2640,7 +2639,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_crop)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -2730,7 +2729,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_logo)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -2820,7 +2819,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_audio)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -2904,7 +2903,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_vn)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -2988,7 +2987,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_copy)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -3068,7 +3067,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_all)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -3286,7 +3285,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_ffempty)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -3376,7 +3375,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_app)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -3466,7 +3465,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_stream)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -3556,7 +3555,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_bandcheck)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(65000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -3635,7 +3634,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_chunksize)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(128, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -3714,7 +3713,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_jitter)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -3793,7 +3792,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_atc)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -3872,7 +3871,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_removed)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
