@@ -926,34 +926,39 @@ public:
 // vhost cluster section
 public:
     /**
-    * whether vhost is edge mode.
-    * for edge, publish client will be proxyed to upnode,
-    * for edge, play client will share a connection to get stream from upnode.
+    * get the cluster directive of vhost.
     */
-    virtual bool                get_vhost_is_edge(std::string vhost);
+    virtual SrsConfDirective*   get_cluster(std::string vhost);
     /**
-    * whether vhost is edge mode.
+    * get the cluster directive of vhost.
+    */
+    virtual SrsConfDirective*   get_cluster(SrsConfDirective* conf);
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    virtual SrsConfDirective*   get_dynamic_cluster(SrsRequest *req);
+#endif
+    /**
+    * whether cluster is edge mode.
     * for edge, publish client will be proxyed to upnode,
     * for edge, play client will share a connection to get stream from upnode.
     */
-    virtual bool                get_vhost_is_edge(SrsConfDirective* conf);
+    virtual bool                get_cluster_is_edge(SrsConfDirective* conf);
     /**
     * get the origin config of edge,
     * specifies the origin ip address, port.
     */
-    virtual SrsConfDirective*   get_vhost_edge_origin(std::string vhost);
+    virtual SrsConfDirective*   get_cluster_edge_origin(SrsConfDirective* conf);
     /**
     * whether edge token tranverse is enabled,
     * if true, edge will send connect origin to verfy the token of client.
     * for example, we verify all clients on the origin FMS by server-side as,
     * all clients connected to edge must be tranverse to origin to verify.
     */
-    virtual bool                get_vhost_edge_token_traverse(std::string vhost);
+    virtual bool                get_cluster_edge_token_traverse(SrsConfDirective* conf);
     /**
      * get the transformed vhost for edge,
      * @see https://github.com/ossrs/srs/issues/372
      */
-    virtual std::string         get_vhost_edge_transform_vhost(std::string vhost);
+    virtual std::string         get_cluster_edge_transform_vhost(SrsConfDirective* conf);
 // vhost security section
 public:
     /**
