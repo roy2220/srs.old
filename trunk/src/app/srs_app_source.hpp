@@ -37,6 +37,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <srs_app_st.hpp>
 #include <srs_app_reload.hpp>
 #include <srs_core_performance.hpp>
+#include <srs_app_config.hpp>
 
 class SrsConsumer;
 class SrsPlayEdge;
@@ -455,6 +456,10 @@ private:
     int _source_id;
     // deep copy of client request.
     SrsRequest* req;
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    // dynamic cluster config.
+    SrsConfDirective* dynamic_cluster;
+#endif
     // to delivery stream to clients.
     std::vector<SrsConsumer*> consumers;
     // the time jitter algorithm for vhost.
@@ -526,6 +531,8 @@ public:
     * initialize the hls with handlers.
     */
     virtual int initialize(SrsRequest* r, ISrsSourceHandler* h, ISrsHlsHandler* hh);
+    virtual SrsConfDirective* get_cluster();
+    virtual SrsRequest* get_request();
 // interface ISrsReloadHandler
 public:
     virtual int on_reload_vhost_play(std::string vhost);

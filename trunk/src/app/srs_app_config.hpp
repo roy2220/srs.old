@@ -49,6 +49,10 @@ class SrsRequest;
 class SrsJsonArray;
 class SrsConfDirective;
 
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+class SrsHttpClient;
+#endif
+
 
 namespace _srs_internal
 {
@@ -77,10 +81,20 @@ namespace _srs_internal
          * fullfill the buffer with content of file specified by filename.
          */
         virtual int fullfill(const char* filename);
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+        /**
+         * fullfill the buffer with content of json returned by url.
+         */
+        virtual int fullfill(const char* action, std::string url, SrsRequest* req);
+#endif
         /**
          * whether buffer is empty.
          */
         virtual bool empty();
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    private:
+        virtual int do_post(SrsHttpClient* hc, std::string url, std::string req, int& code, std::string& res);
+#endif
     };
 };
 
@@ -813,13 +827,20 @@ private:
 // forward section
 public:
     /**
-     * whether the forwarder enabled.
-     */
-    virtual bool                get_forward_enabled(std::string vhost);
-    /**
     * get the forward directive of vhost.
     */
-    virtual SrsConfDirective*   get_forwards(std::string vhost);
+    virtual SrsConfDirective*   get_forward(std::string vhost);
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    virtual SrsConfDirective*   get_dynamic_forward(SrsRequest *req);
+#endif
+    /**
+     * whether the forwarder enabled.
+     */
+    virtual bool                get_forward_enabled(SrsConfDirective* conf);
+    /**
+     * get the forward directive destinations.
+     */
+    virtual SrsConfDirective*   get_forward_destinations(SrsConfDirective* conf);
 // http_hooks section
 private:
     /**
@@ -905,39 +926,44 @@ public:
 // vhost cluster section
 public:
     /**
-    * whether vhost is edge mode.
-    * for edge, publish client will be proxyed to upnode,
-    * for edge, play client will share a connection to get stream from upnode.
+    * get the cluster directive of vhost.
     */
-    virtual bool                get_vhost_is_edge(std::string vhost);
+    virtual SrsConfDirective*   get_cluster(std::string vhost);
     /**
-    * whether vhost is edge mode.
+    * get the cluster directive of vhost.
+    */
+    virtual SrsConfDirective*   get_cluster(SrsConfDirective* conf);
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    virtual SrsConfDirective*   get_dynamic_cluster(SrsRequest *req);
+#endif
+    /**
+    * whether cluster is edge mode.
     * for edge, publish client will be proxyed to upnode,
     * for edge, play client will share a connection to get stream from upnode.
     */
-    virtual bool                get_vhost_is_edge(SrsConfDirective* conf);
+    virtual bool                get_cluster_is_edge(SrsConfDirective* conf);
     /**
     * get the origin config of edge,
     * specifies the origin ip address, port.
     */
-    virtual SrsConfDirective*   get_vhost_edge_origin(std::string vhost);
+    virtual SrsConfDirective*   get_cluster_edge_origin(SrsConfDirective* conf);
     /**
     * whether edge token tranverse is enabled,
     * if true, edge will send connect origin to verfy the token of client.
     * for example, we verify all clients on the origin FMS by server-side as,
     * all clients connected to edge must be tranverse to origin to verify.
     */
-    virtual bool                get_vhost_edge_token_traverse(std::string vhost);
+    virtual bool                get_cluster_edge_token_traverse(SrsConfDirective* conf);
     /**
      * get the transformed vhost for edge,
      * @see https://github.com/ossrs/srs/issues/372
      */
-    virtual std::string         get_vhost_edge_transform_vhost(std::string vhost);
+    virtual std::string         get_cluster_edge_transform_vhost(SrsConfDirective* conf);
     /**
      * whether to publish stream to edge local, while publishing stream to 
      * origin via edge.
      */
-    virtual bool                get_vhost_edge_publish_local(std::string vhost);
+    virtual bool                get_cluster_edge_publish_local(SrsConfDirective* conf);
 // vhost security section
 public:
     /**
@@ -962,6 +988,9 @@ public:
     *       and stream.transcode.srs.com.
     */
     virtual SrsConfDirective*   get_transcode(std::string vhost, std::string scope);
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    virtual SrsConfDirective*   get_dynamic_transcode(SrsRequest *req);
+#endif
     /**
     * whether the transcode directive is enabled.
     */
@@ -1414,6 +1443,11 @@ public:
     * @return the disk device name to stat. NULL if not configed.
     */
     virtual SrsConfDirective*   get_stats_disk_device();
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+// dynamic config
+private:
+    virtual SrsConfDirective*   get_dynamic_config(const char* name, SrsRequest *req);
+#endif
 };
 
 #endif

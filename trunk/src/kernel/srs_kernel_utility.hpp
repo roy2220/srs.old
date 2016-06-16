@@ -53,6 +53,9 @@ extern int64_t srs_update_system_time_ms();
 // dns resolve utility, return the resolved ip address.
 extern std::string srs_dns_resolve(std::string host);
 
+// get the host:port from url.
+extern std::string srs_get_hostport(std::string url);
+
 // split the host:port to host and port.
 // @remark the hostport format in <host[:port]>, where port is optional.
 extern void srs_parse_hostport(const std::string& hostport, std::string& host, int& port);

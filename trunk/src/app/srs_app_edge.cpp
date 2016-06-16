@@ -83,15 +83,15 @@ SrsEdgeRtmpUpstream::~SrsEdgeRtmpUpstream()
     srs_freep(sdk);
 }
 
-int SrsEdgeRtmpUpstream::connect(SrsRequest* r, SrsLbRoundRobin* lb)
+int SrsEdgeRtmpUpstream::connect(SrsSource* source, SrsLbRoundRobin* lb)
 {
     int ret = ERROR_SUCCESS;
     
-    SrsRequest* req = r;
+    SrsRequest* req = source->get_request();
     
     std::string url;
     if (true) {
-        SrsConfDirective* conf = _srs_config->get_vhost_edge_origin(req->vhost);
+        SrsConfDirective* conf = _srs_config->get_cluster_edge_origin(source->get_cluster());
         
         // @see https://github.com/ossrs/srs/issues/79
         // when origin is error, for instance, server is shutdown,
@@ -120,7 +120,7 @@ int SrsEdgeRtmpUpstream::connect(SrsRequest* r, SrsLbRoundRobin* lb)
         
         // support vhost tranform for edge,
         // @see https://github.com/ossrs/srs/issues/372
-        std::string vhost = _srs_config->get_vhost_edge_transform_vhost(req->vhost);
+        std::string vhost = _srs_config->get_cluster_edge_transform_vhost(source->get_cluster());
         vhost = srs_string_replace(vhost, "[vhost]", req->vhost);
         
         url = srs_generate_rtmp_url(server, port, vhost, req->app, req->stream);
@@ -239,7 +239,7 @@ int SrsEdgeIngester::cycle()
             return ret;
         }
         
-        if ((ret = upstream->connect(req, lb)) != ERROR_SUCCESS) {
+        if ((ret = upstream->connect(source, lb)) != ERROR_SUCCESS) {
             return ret;
         }
         
@@ -445,7 +445,7 @@ int SrsEdgeForwarder::start()
     // reset the error code.
     send_error_code = ERROR_SUCCESS;
     
-    SrsConfDirective* conf = _srs_config->get_vhost_edge_origin(req->vhost);
+    SrsConfDirective* conf = _srs_config->get_cluster_edge_origin(source->get_cluster());
     srs_assert(conf);
 
     for (int n = (int)conf->args.size(); n >= 1; --n) {
@@ -458,7 +458,7 @@ int SrsEdgeForwarder::start()
             
             // support vhost tranform for edge,
             // @see https://github.com/ossrs/srs/issues/372
-            std::string vhost = _srs_config->get_vhost_edge_transform_vhost(req->vhost);
+            std::string vhost = _srs_config->get_cluster_edge_transform_vhost(source->get_cluster());
             vhost = srs_string_replace(vhost, "[vhost]", req->vhost);
             
             url = srs_generate_rtmp_url(server, port, vhost, req->app, req->stream);

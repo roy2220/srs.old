@@ -85,7 +85,7 @@ public:
     SrsEdgeUpstream();
     virtual ~SrsEdgeUpstream();
 public:
-    virtual int connect(SrsRequest* r, SrsLbRoundRobin* lb) = 0;
+    virtual int connect(SrsSource* source, SrsLbRoundRobin* lb) = 0;
     virtual int recv_message(SrsCommonMessage** pmsg) = 0;
     virtual int decode_message(SrsCommonMessage* msg, SrsPacket** ppacket) = 0;
     virtual void close() = 0;
@@ -106,7 +106,7 @@ public:
     SrsEdgeRtmpUpstream(std::string r);
     virtual ~SrsEdgeRtmpUpstream();
 public:
-    virtual int connect(SrsRequest* r, SrsLbRoundRobin* lb);
+    virtual int connect(SrsSource* source, SrsLbRoundRobin* lb);
     virtual int recv_message(SrsCommonMessage** pmsg);
     virtual int decode_message(SrsCommonMessage* msg, SrsPacket** ppacket);
     virtual void close();

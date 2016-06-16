@@ -34,6 +34,10 @@ using namespace std;
 #include <srs_app_ffmpeg.hpp>
 #include <srs_kernel_utility.hpp>
 
+#ifdef SRS_AUTO_DYNAMIC_CONFIG
+#include <srs_core_autofree.hpp>
+#endif
+
 #ifdef SRS_AUTO_TRANSCODE
 
 // when error, encoder sleep for a while and retry.
@@ -159,44 +163,42 @@ int SrsEncoder::parse_scope_engines(SrsRequest* req)
 {
     int ret = ERROR_SUCCESS;
     
-    // parse all transcode engines.
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    SrsConfDirective* dyn_conf = _srs_config->get_dynamic_transcode(req);
+    SrsAutoFree(SrsConfDirective, dyn_conf);
+    SrsConfDirective* conf = dyn_conf;
+#else
     SrsConfDirective* conf = NULL;
-    
-    // parse vhost scope engines
+#endif
     std::string scope = "";
-    if ((conf = _srs_config->get_transcode(req->vhost, scope)) != NULL) {
-        if ((ret = parse_ffmpeg(req, conf)) != ERROR_SUCCESS) {
-            if (ret != ERROR_ENCODER_LOOP) {
-                srs_error("parse vhost scope=%s transcode engines failed. "
-                    "ret=%d", scope.c_str(), ret);
+
+    if (conf == NULL) {
+        conf = _srs_config->get_transcode(req->vhost, scope);
+
+        if (conf == NULL) {
+            scope = req->app;
+            conf = _srs_config->get_transcode(req->vhost, scope);
+
+            if (conf == NULL) {
+                scope += "/";
+                scope += req->stream;
+                conf = _srs_config->get_transcode(req->vhost, scope);
+
+                if (conf == NULL) {
+                    return ret;
+                }
             }
-            return ret;
         }
     }
-    // parse app scope engines
-    scope = req->app;
-    if ((conf = _srs_config->get_transcode(req->vhost, scope)) != NULL) {
-        if ((ret = parse_ffmpeg(req, conf)) != ERROR_SUCCESS) {
-            if (ret != ERROR_ENCODER_LOOP) {
-                srs_error("parse app scope=%s transcode engines failed. "
-                    "ret=%d", scope.c_str(), ret);
-            }
-            return ret;
+
+    if ((ret = parse_ffmpeg(req, conf)) != ERROR_SUCCESS) {
+        if (ret != ERROR_ENCODER_LOOP) {
+            srs_error("parse vhost scope=%s transcode engines failed. "
+                "ret=%d", scope.c_str(), ret);
         }
+        return ret;
     }
-    // parse stream scope engines
-    scope += "/";
-    scope += req->stream;
-    if ((conf = _srs_config->get_transcode(req->vhost, scope)) != NULL) {
-        if ((ret = parse_ffmpeg(req, conf)) != ERROR_SUCCESS) {
-            if (ret != ERROR_ENCODER_LOOP) {
-                srs_error("parse stream scope=%s transcode engines failed. "
-                    "ret=%d", scope.c_str(), ret);
-            }
-            return ret;
-        }
-    }
-    
+
     return ret;
 }
 

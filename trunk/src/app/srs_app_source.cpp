@@ -773,6 +773,10 @@ SrsSource* SrsSource::fetch(SrsRequest* r)
     // for origin auth is on, the token in request maybe invalid,
     // and we only need to update the token of request, it's simple.
     source->req->update_auth(r);
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    srs_freep(source->dynamic_cluster);
+    source->dynamic_cluster = _srs_config->get_dynamic_cluster(source->req);
+#endif
 
     return source;
 }
@@ -902,6 +906,9 @@ SrsSharedPtrMessage* SrsMixQueue::pop()
 SrsSource::SrsSource()
 {
     req = NULL;
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    dynamic_cluster = NULL;
+#endif
     jitter_algorithm = SrsRtmpJitterAlgorithmOFF;
     mix_correct = false;
     mix_queue = new SrsMixQueue();
@@ -979,6 +986,9 @@ SrsSource::~SrsSource()
 #endif
 
     srs_freep(req);
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    srs_freep(dynamic_cluster);
+#endif
 }
 
 void SrsSource::dispose()
@@ -1019,6 +1029,9 @@ int SrsSource::initialize(SrsRequest* r, ISrsSourceHandler* h, ISrsHlsHandler* h
 
     handler = h;
     req = r->copy();
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    dynamic_cluster = _srs_config->get_dynamic_cluster(req);
+#endif
     atc = _srs_config->get_atc(req->vhost);
 
 #ifdef SRS_AUTO_HLS
@@ -1047,6 +1060,22 @@ int SrsSource::initialize(SrsRequest* r, ISrsSourceHandler* h, ISrsHlsHandler* h
     mix_correct = _srs_config->get_mix_correct(req->vhost);
     
     return ret;
+}
+
+SrsConfDirective* SrsSource::get_cluster()
+{
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    if (dynamic_cluster != NULL) {
+        return dynamic_cluster;
+    }
+#endif
+
+    return _srs_config->get_cluster(req->vhost);
+}
+
+SrsRequest* SrsSource::get_request()
+{
+    return req;
 }
 
 int SrsSource::on_reload_vhost_play(string vhost)
@@ -2219,7 +2248,7 @@ int SrsSource::create_consumer(SrsConnection* conn, SrsConsumer*& consumer, bool
     }
 
     // for edge, when play edge stream, check the state
-    if (_can_publish && _srs_config->get_vhost_is_edge(req->vhost)) {
+    if (_can_publish && _srs_config->get_cluster_is_edge(get_cluster())) {
         // notice edge to start for the first client.
         if ((ret = play_edge->on_client_play()) != ERROR_SUCCESS) {
             srs_error("notice edge start play stream failed. ret=%d", ret);
@@ -2272,20 +2301,32 @@ void SrsSource::on_edge_proxy_unpublish()
 int SrsSource::create_forwarders()
 {
     int ret = ERROR_SUCCESS;
-    
-    if (!_srs_config->get_forward_enabled(req->vhost)) {
+
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    SrsConfDirective* dyn_conf = _srs_config->get_dynamic_forward(req);
+    SrsAutoFree(SrsConfDirective, dyn_conf);
+    SrsConfDirective* conf = dyn_conf;
+#else
+    SrsConfDirective* conf = NULL;
+#endif
+
+    if (conf == NULL) {
+        conf = _srs_config->get_forward(req->vhost);
+    }
+
+    if (!_srs_config->get_forward_enabled(conf)
+        || (conf = _srs_config->get_forward_destinations(conf)) == NULL) {
         return ret;
     }
-    
-    SrsConfDirective* conf = _srs_config->get_forwards(req->vhost);
-    for (int i = 0; conf && i < (int)conf->args.size(); i++) {
-        std::string forward_server = conf->args.at(i);
+
+    for (int i = 0; i < (int)conf->args.size(); i++) {
+        std::string destination = conf->args.at(i);
         
         SrsForwarder* forwarder = new SrsForwarder(this);
         forwarders.push_back(forwarder);
         
         // initialize the forwarder with request.
-        if ((ret = forwarder->initialize(req, forward_server)) != ERROR_SUCCESS) {
+        if ((ret = forwarder->initialize(req, destination)) != ERROR_SUCCESS) {
             return ret;
         }
     
@@ -2296,7 +2337,7 @@ int SrsSource::create_forwarders()
             srs_error("start forwarder failed. "
                 "vhost=%s, app=%s, stream=%s, forward-to=%s",
                 req->vhost.c_str(), req->app.c_str(), req->stream.c_str(),
-                forward_server.c_str());
+                destination.c_str());
             return ret;
         }
     }

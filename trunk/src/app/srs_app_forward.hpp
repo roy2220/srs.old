@@ -52,8 +52,8 @@ class SrsSimpleRtmpClient;
 class SrsForwarder : public ISrsReusableThread2Handler
 {
 private:
-    // the ep to forward, server[:port].
-    std::string ep_forward;
+    // the destination, server:port/[app]?vhost=[vhost]/[stream].
+    std::string destination;
     SrsRequest* req;
 private:
     SrsReusableThread2* pthread;
@@ -72,7 +72,7 @@ public:
     SrsForwarder(SrsSource* _source);
     virtual ~SrsForwarder();
 public:
-    virtual int initialize(SrsRequest* r, std::string ep);
+    virtual int initialize(SrsRequest* r, std::string dest);
     virtual void set_queue_size(double queue_size);
 public:
     virtual int on_publish();
@@ -97,6 +97,7 @@ public:
     virtual int cycle();
 private:
     virtual int forward();
+    virtual std::string generate_destination_url();
 };
 
 #endif

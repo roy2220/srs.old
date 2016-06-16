@@ -53,6 +53,13 @@ using namespace std;
 #include <srs_kernel_utility.hpp>
 #include <srs_rtmp_stack.hpp>
 
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+#include <srs_app_http_conn.hpp>
+#include <srs_app_http_client.hpp>
+
+#define SRS_HTTP_RESPONSE_OK    SRS_XSTR(ERROR_SUCCESS)
+#endif
+
 using namespace _srs_internal;
 
 // the version to identify the core.
@@ -163,6 +170,132 @@ namespace _srs_internal
         
         return ret;
     }
+
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    int SrsConfigBuffer::fullfill(const char* action, std::string url, SrsRequest* req)
+    {
+        int ret = ERROR_SUCCESS;
+        
+        int client_id = _srs_context->get_id();
+        
+        SrsJsonObject* obj = SrsJsonAny::object();
+        SrsAutoFree(SrsJsonObject, obj);
+        
+        obj->set("action", SrsJsonAny::str(action));
+        obj->set("client_id", SrsJsonAny::integer(client_id));
+        obj->set("ip", SrsJsonAny::str(req->ip.c_str()));
+        obj->set("vhost", SrsJsonAny::str(req->vhost.c_str()));
+        obj->set("app", SrsJsonAny::str(req->app.c_str()));
+        obj->set("tcUrl", SrsJsonAny::str(req->tcUrl.c_str()));
+        obj->set("stream", SrsJsonAny::str(req->stream.c_str()));
+            
+        std::string data = obj->dumps();
+        std::string res;
+        int status_code;
+        
+        SrsHttpClient http;
+        if ((ret = do_post(&http, url, data, status_code, res)) != ERROR_SUCCESS) {
+            srs_error("%s fullfill failed. "
+                "client_id=%d, url=%s, request=%s, response=%s, code=%d, ret=%d",
+                action, client_id, url.c_str(), data.c_str(), res.c_str(), status_code, ret);
+            return ret;
+        }
+        
+        srs_trace("%s fullfill success. "
+            "client_id=%d, url=%s, request=%s, response=%s, ret=%d",
+            action, client_id, url.c_str(), data.c_str(), res.c_str(), ret);
+        
+        return ret;
+    }
+
+    int SrsConfigBuffer::do_post(SrsHttpClient* hc, std::string url, std::string req, int& code, std::string& res)
+    {
+        int ret = ERROR_SUCCESS;
+        
+        SrsHttpUri uri;
+        if ((ret = uri.initialize(url)) != ERROR_SUCCESS) {
+            srs_error("http: post failed. url=%s, ret=%d", url.c_str(), ret);
+            return ret;
+        }
+        
+        if ((ret = hc->initialize(uri.get_host(), uri.get_port())) != ERROR_SUCCESS) {
+            return ret;
+        }
+        
+        ISrsHttpMessage* msg = NULL;
+        if ((ret = hc->post(uri.get_path(), req, &msg)) != ERROR_SUCCESS) {
+            return ret;
+        }
+        SrsAutoFree(ISrsHttpMessage, msg);
+        
+        code = msg->status_code();
+        if ((ret = msg->body_read_all(res)) != ERROR_SUCCESS) {
+            return ret;
+        }
+        
+        // ensure the http status is ok.
+        // https://github.com/ossrs/srs/issues/158
+        if (code != SRS_CONSTS_HTTP_OK && code != SRS_CONSTS_HTTP_Created) {
+            ret = ERROR_HTTP_STATUS_INVALID;
+            srs_error("invalid response status=%d. ret=%d", code, ret);
+            return ret;
+        }
+        
+        // should never be empty.
+        if (res.empty()) {
+            ret = ERROR_HTTP_DATA_INVALID;
+            srs_error("invalid empty response. ret=%d", ret);
+            return ret;
+        }
+        
+        // parse string res to json.
+        SrsJsonAny* info = SrsJsonAny::loads((char*)res.c_str());
+        if (!info) {
+            ret = ERROR_HTTP_DATA_INVALID;
+            srs_error("invalid response %s. ret=%d", res.c_str(), ret);
+            return ret;
+        }
+        SrsAutoFree(SrsJsonAny, info);
+        
+        // response error code in string.
+        if (!info->is_object()) {
+            if (res != SRS_HTTP_RESPONSE_OK) {
+                ret = ERROR_HTTP_DATA_INVALID;
+                srs_error("invalid response number %s. ret=%d", res.c_str(), ret);
+                return ret;
+            }
+            return ret;
+        }
+        
+        // response standard object, format in json: {"code": 0, "data": ""}
+        SrsJsonObject* res_info = info->to_object();
+        SrsJsonAny* res_code = NULL;
+        if ((res_code = res_info->ensure_property_integer("code")) == NULL) {
+            ret = ERROR_RESPONSE_CODE;
+            srs_error("invalid response without code, ret=%d", ret);
+            return ret;
+        }
+        
+        if ((res_code->to_integer()) != ERROR_SUCCESS) {
+            ret = ERROR_RESPONSE_CODE;
+            srs_error("error response code=%d. ret=%d", res_code->to_integer(), ret);
+            return ret;
+        }
+
+        SrsJsonAny* res_data = NULL;
+        if ((res_data = res_info->ensure_property_string("data")) != NULL) {
+            std::string data = res_data->to_str();
+
+            srs_freepa(start);
+            pos = last = start = new char[data.size()];
+            end = start + data.size();
+
+            memcpy(start, data.data(), data.size());
+        }
+        
+        return ret;
+    }
+#endif
     
     bool SrsConfigBuffer::empty()
     {
@@ -1276,7 +1409,7 @@ int SrsConfig::reload_vhost(SrsConfDirective* old_root)
         // third, the origin or upnode device can always be restart,
         //      edge will retry and the users connected to edge are ok.
         // it's ok to add or remove edge/origin vhost.
-        if (get_vhost_is_edge(old_vhost) != get_vhost_is_edge(new_vhost)) {
+        if (get_cluster_is_edge(get_cluster(old_vhost)) != get_cluster_is_edge(get_cluster(old_vhost))) {
             ret = ERROR_RTMP_EDGE_RELOAD;
             srs_error("reload never supports mode changed. ret=%d", ret);
             return ret;
@@ -2237,10 +2370,10 @@ int SrsConfig::global_to_json(SrsJsonObject* obj)
         if (get_bw_check_enabled(dir->arg0())) {
             sobj->set("bandcheck", SrsJsonAny::boolean(true));
         }
-        if (!get_vhost_is_edge(dir->arg0())) {
+        if (!get_cluster_is_edge(get_cluster(dir->arg0()))) {
             sobj->set("origin", SrsJsonAny::boolean(true));
         }
-        if (get_forward_enabled(dir->arg0())) {
+        if (get_forward_enabled(get_forward(dir->arg0()))) {
             sobj->set("forward", SrsJsonAny::boolean(true));
         }
         
@@ -2377,7 +2510,7 @@ int SrsConfig::vhost_to_json(SrsConfDirective* vhost, SrsJsonObject* obj)
         SrsJsonObject* forward = SrsJsonAny::object();
         obj->set("forward", forward);
         
-        forward->set("enabled", SrsJsonAny::boolean(get_forward_enabled(vhost->name)));
+        forward->set("enabled", SrsJsonAny::boolean(get_forward_enabled(dir)));
         
         for (int i = 0; i < (int)dir->directives.size(); i++) {
             SrsConfDirective* sdir = dir->directives.at(i);
@@ -3807,6 +3940,9 @@ int SrsConfig::check_config()
                 && n != "play" && n != "publish" && n != "cluster"
                 && n != "security" && n != "http_remux"
                 && n != "http_static" && n != "hds" && n != "exec"
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+                && n != "dynamic_transcode" && n != "dynamic_forward" && n != "dynamic_cluster"
+#endif
             ) {
                 ret = ERROR_SYSTEM_CONFIG_INVALID;
                 srs_error("unsupported vhost directive %s, ret=%d", n.c_str(), ret);
@@ -4890,16 +5026,27 @@ int SrsConfig::get_global_chunk_size()
     return ::atoi(conf->arg0().c_str());
 }
 
-bool SrsConfig::get_forward_enabled(string vhost)
+SrsConfDirective* SrsConfig::get_forward(string vhost)
 {
-    static bool DEFAULT = false;
-    
     SrsConfDirective* conf = get_vhost(vhost);
     if (!conf) {
-        return DEFAULT;
+        return NULL;
     }
     
-    conf = conf->get("forward");
+    return conf->get("forward");
+}
+
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+SrsConfDirective* SrsConfig::get_dynamic_forward(SrsRequest *req)
+{
+    return get_dynamic_config("dynamic_forward", req);
+}
+#endif
+
+bool SrsConfig::get_forward_enabled(SrsConfDirective* conf)
+{
+    static bool DEFAULT = false;
+
     if (!conf) {
         return DEFAULT;
     }
@@ -4912,18 +5059,12 @@ bool SrsConfig::get_forward_enabled(string vhost)
     return SRS_CONF_PERFER_FALSE(conf->arg0());
 }
 
-SrsConfDirective* SrsConfig::get_forwards(string vhost)
+SrsConfDirective* SrsConfig::get_forward_destinations(SrsConfDirective* conf)
 {
-    SrsConfDirective* conf = get_vhost(vhost);
     if (!conf) {
         return NULL;
     }
-    
-    conf = conf->get("forward");
-    if (!conf) {
-        return NULL;
-    }
-    
+
     return conf->get("destination");
 }
 
@@ -5132,22 +5273,32 @@ int SrsConfig::get_bw_check_limit_kbps(string vhost)
     return ::atoi(conf->arg0().c_str());
 }
 
-bool SrsConfig::get_vhost_is_edge(string vhost)
+SrsConfDirective* SrsConfig::get_cluster(std::string vhost)
 {
     SrsConfDirective* conf = get_vhost(vhost);
-    return get_vhost_is_edge(conf);
+    if (!conf) {
+        return NULL;
+    }
+    
+    return get_cluster(conf);
 }
 
-bool SrsConfig::get_vhost_is_edge(SrsConfDirective* vhost)
+SrsConfDirective* SrsConfig::get_cluster(SrsConfDirective* conf)
+{
+    return conf->get("cluster");
+}
+
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+SrsConfDirective* SrsConfig::get_dynamic_cluster(SrsRequest *req)
+{
+    return get_dynamic_config("dynamic_cluster", req);
+}
+#endif
+
+bool SrsConfig::get_cluster_is_edge(SrsConfDirective* conf)
 {
     static bool DEFAULT = false;
     
-    SrsConfDirective* conf = vhost;
-    if (!conf) {
-        return DEFAULT;
-    }
-    
-    conf = conf->get("cluster");
     if (!conf) {
         return DEFAULT;
     }
@@ -5160,14 +5311,8 @@ bool SrsConfig::get_vhost_is_edge(SrsConfDirective* vhost)
     return "remote" == conf->arg0();
 }
 
-SrsConfDirective* SrsConfig::get_vhost_edge_origin(string vhost)
+SrsConfDirective* SrsConfig::get_cluster_edge_origin(SrsConfDirective* conf)
 {
-    SrsConfDirective* conf = get_vhost(vhost);
-    if (!conf) {
-        return NULL;
-    }
-    
-    conf = conf->get("cluster");
     if (!conf) {
         return NULL;
     }
@@ -5175,16 +5320,10 @@ SrsConfDirective* SrsConfig::get_vhost_edge_origin(string vhost)
     return conf->get("origin");
 }
 
-bool SrsConfig::get_vhost_edge_token_traverse(string vhost)
+bool SrsConfig::get_cluster_edge_token_traverse(SrsConfDirective* conf)
 {
     static bool DEFAULT = false;
     
-    SrsConfDirective* conf = get_vhost(vhost);
-    if (!conf) {
-        return DEFAULT;
-    }
-    
-    conf = conf->get("cluster");
     if (!conf) {
         return DEFAULT;
     }
@@ -5197,16 +5336,10 @@ bool SrsConfig::get_vhost_edge_token_traverse(string vhost)
     return SRS_CONF_PERFER_FALSE(conf->arg0());
 }
 
-string SrsConfig::get_vhost_edge_transform_vhost(string vhost)
+string SrsConfig::get_cluster_edge_transform_vhost(SrsConfDirective* conf)
 {
     static string DEFAULT = "[vhost]";
     
-    SrsConfDirective* conf = get_vhost(vhost);
-    if (!conf) {
-        return DEFAULT;
-    }
-    
-    conf = conf->get("cluster");
     if (!conf) {
         return DEFAULT;
     }
@@ -5219,16 +5352,10 @@ string SrsConfig::get_vhost_edge_transform_vhost(string vhost)
     return conf->arg0();
 }
 
-bool SrsConfig::get_vhost_edge_publish_local(string vhost)
+bool SrsConfig::get_cluster_edge_publish_local(SrsConfDirective* conf)
 {
     static bool DEFAULT = false;
     
-    SrsConfDirective* conf = get_vhost(vhost);
-    if (!conf) {
-        return DEFAULT;
-    }
-    
-    conf = conf->get("cluster");
     if (!conf) {
         return DEFAULT;
     }
@@ -5287,6 +5414,13 @@ SrsConfDirective* SrsConfig::get_transcode(string vhost, string scope)
     
     return conf;
 }
+
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+SrsConfDirective* SrsConfig::get_dynamic_transcode(SrsRequest *req)
+{
+    return get_dynamic_config("dynamic_transcode", req);
+}
+#endif
 
 bool SrsConfig::get_transcode_enabled(SrsConfDirective* conf)
 {
@@ -6903,3 +7037,31 @@ SrsConfDirective* SrsConfig::get_stats_disk_device()
     
     return conf;
 }
+
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+SrsConfDirective* SrsConfig::get_dynamic_config(const char* name, SrsRequest *req)
+{
+    SrsConfDirective* conf = get_vhost(req->vhost);
+    if (!conf) {
+        return NULL;
+    }
+    
+    conf = conf->get(name);
+    if (!conf || conf->arg0().empty()) {
+        return NULL;
+    }
+
+    SrsConfigBuffer buf;
+    if (buf.fullfill(name, conf->arg0(), req) != ERROR_SUCCESS) {
+        return NULL;
+    }
+
+    SrsConfDirective *dynm_conf = new SrsConfDirective();
+    if (dynm_conf->parse(&buf) != ERROR_SUCCESS) {
+        srs_freep(dynm_conf);
+        return NULL;
+    }
+    
+    return dynm_conf;
+}
+#endif

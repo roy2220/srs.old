@@ -608,16 +608,19 @@ int SrsRtmpConn::service_cycle()
     
     // do token traverse before serve it.
     // @see https://github.com/ossrs/srs/pull/239
+    /*
     if (true) {
-        bool vhost_is_edge = _srs_config->get_vhost_is_edge(req->vhost);
-        bool edge_traverse = _srs_config->get_vhost_edge_token_traverse(req->vhost);
-        if (vhost_is_edge && edge_traverse) {
+        SrsConfDirective* conf = _srs_config->get_cluster(req->vhost);
+        bool is_edge = _srs_config->get_cluster_is_edge(conf);
+        bool edge_traverse = _srs_config->get_cluster_edge_token_traverse(conf);
+        if (is_edge && edge_traverse) {
             if ((ret = check_edge_token_traverse_auth()) != ERROR_SUCCESS) {
                 srs_warn("token auth failed, ret=%d", ret);
                 return ret;
             }
         }
     }
+    */
     
     // set chunk size to larger.
     // set the chunk size before any larger response greater than 128,
@@ -716,28 +719,12 @@ int SrsRtmpConn::stream_service_cycle()
     rtmp->set_recv_timeout(SRS_CONSTS_RTMP_TIMEOUT_US);
     rtmp->set_send_timeout(SRS_CONSTS_RTMP_TIMEOUT_US);
     
-    // find a source to serve.
-    SrsSource* source = SrsSource::fetch(req);
-    if (!source) {
-        if ((ret = SrsSource::create(req, server, server, &source)) != ERROR_SUCCESS) {
-            return ret;
-        }
-    }
-    srs_assert(source != NULL);
-    
-    // update the statistic when source disconveried.
+    // update the statistic.
     SrsStatistic* stat = SrsStatistic::instance();
     if ((ret = stat->on_client(_srs_context->get_id(), req, this, type)) != ERROR_SUCCESS) {
         srs_error("stat client failed. ret=%d", ret);
         return ret;
     }
-
-    bool vhost_is_edge = _srs_config->get_vhost_is_edge(req->vhost);
-    bool enabled_cache = _srs_config->get_gop_cache(req->vhost);
-    srs_trace("source url=%s, ip=%s, cache=%d, is_edge=%d, source_id=%d[%d]",
-        req->get_stream_url().c_str(), ip.c_str(), enabled_cache, vhost_is_edge, 
-        source->source_id(), source->source_id());
-    source->set_cache(enabled_cache);
     
     switch (type) {
         case SrsRtmpConnPlay: {
@@ -754,7 +741,7 @@ int SrsRtmpConn::stream_service_cycle()
             }
             
             srs_info("start to play stream %s success", req->stream.c_str());
-            ret = playing(source);
+            ret = playing();
             http_hooks_on_stop();
             
             return ret;
@@ -767,7 +754,14 @@ int SrsRtmpConn::stream_service_cycle()
                 return ret;
             }
             
-            return publishing(source);
+            if ((ret = http_hooks_on_publish()) != ERROR_SUCCESS) {
+                srs_error("http hook on_publish failed. ret=%d", ret);
+                return ret;
+            }
+
+            ret = publishing();
+            http_hooks_on_unpublish();
+            return ret;
         }
         case SrsRtmpConnFlashPublish: {
             srs_verbose("flash start to publish stream %s.", req->stream.c_str());
@@ -777,7 +771,14 @@ int SrsRtmpConn::stream_service_cycle()
                 return ret;
             }
             
-            return publishing(source);
+            if ((ret = http_hooks_on_publish()) != ERROR_SUCCESS) {
+                srs_error("http hook on_publish failed. ret=%d", ret);
+                return ret;
+            }
+
+            ret = publishing();
+            http_hooks_on_unpublish();
+            return ret;
         }
         default: {
             ret = ERROR_SYSTEM_CLIENT_INVALID;
@@ -828,9 +829,39 @@ int SrsRtmpConn::check_vhost(bool try_default_vhost)
     return ret;
 }
 
-int SrsRtmpConn::playing(SrsSource* source)
+int SrsRtmpConn::find_source(SrsSource** s)
 {
     int ret = ERROR_SUCCESS;
+    SrsSource*& source = *s;
+
+    // find a source to serve.
+    source = SrsSource::fetch(req);
+    if (!source) {
+        if ((ret = SrsSource::create(req, server, server, &source)) != ERROR_SUCCESS) {
+            return ret;
+        }
+    }
+    srs_assert(source != NULL);
+
+    bool is_edge = _srs_config->get_cluster_is_edge(source->get_cluster());
+    bool enabled_cache = _srs_config->get_gop_cache(req->vhost);
+    srs_trace("source url=%s, ip=%s, cache=%d, is_edge=%d, source_id=%d[%d]",
+        source->get_request()->get_stream_url().c_str(), ip.c_str(), enabled_cache, is_edge, 
+        source->source_id(), source->source_id());
+    source->set_cache(enabled_cache);
+
+    return ret;
+}
+
+int SrsRtmpConn::playing()
+{
+    int ret = ERROR_SUCCESS;
+    SrsSource* source;
+
+    if ((ret = find_source(&source)) != ERROR_SUCCESS) {
+        srs_error("find source failed. ret=%d", ret);
+        return ret;
+    }
     
     // create consumer of souce.
     SrsConsumer* consumer = NULL;
@@ -1045,9 +1076,15 @@ int SrsRtmpConn::do_playing(SrsSource* source, SrsConsumer* consumer, SrsQueueRe
     return ret;
 }
 
-int SrsRtmpConn::publishing(SrsSource* source)
+int SrsRtmpConn::publishing()
 {
     int ret = ERROR_SUCCESS;
+    SrsSource* source;
+
+    if ((ret = find_source(&source)) != ERROR_SUCCESS) {
+        srs_error("find source failed. ret=%d", ret);
+        return ret;
+    }
     
     if (_srs_config->get_refer_enabled(req->vhost)) {
         if ((ret = refer->check(req->pageUrl, _srs_config->get_refer_publish(req->vhost))) != ERROR_SUCCESS) {
@@ -1062,13 +1099,13 @@ int SrsRtmpConn::publishing(SrsSource* source)
         return ret;
     }
 
-    bool vhost_is_edge = _srs_config->get_vhost_is_edge(req->vhost);
-    bool edge_publish_local = _srs_config->get_vhost_edge_publish_local(req->vhost);
-    if ((ret = acquire_publish(source, vhost_is_edge, edge_publish_local)) == ERROR_SUCCESS) {
+    bool is_edge = _srs_config->get_cluster_is_edge(source->get_cluster());
+    bool edge_publish_local = _srs_config->get_cluster_edge_publish_local(source->get_cluster());
+    if ((ret = acquire_publish(source, is_edge, edge_publish_local)) == ERROR_SUCCESS) {
         // use isolate thread to recv,
         // @see: https://github.com/ossrs/srs/issues/237
         SrsPublishRecvThread trd(rtmp, req, 
-            st_netfd_fileno(stfd), 0, this, source, true, vhost_is_edge, edge_publish_local);
+            st_netfd_fileno(stfd), 0, this, source, true, is_edge, edge_publish_local);
 
         srs_info("start to publish stream %s success", req->stream.c_str());
         ret = do_publishing(source, &trd);
@@ -1083,10 +1120,8 @@ int SrsRtmpConn::publishing(SrsSource* source)
     // @see https://github.com/ossrs/srs/issues/474
     // @remark when stream is busy, should never release it.
     if (ret != ERROR_SYSTEM_STREAM_BUSY) {
-        release_publish(source, vhost_is_edge, edge_publish_local);
+        release_publish(source, is_edge, edge_publish_local);
     }
-
-    http_hooks_on_unpublish();
 
     return ret;
 }
@@ -1227,7 +1262,7 @@ void SrsRtmpConn::release_publish(SrsSource* source, bool is_edge, bool edge_pub
 }
 
 int SrsRtmpConn::handle_publish_message(SrsSource* source, SrsCommonMessage* msg,
-                                        bool is_fmle, bool vhost_is_edge, bool edge_publish_local)
+                                        bool is_fmle, bool is_edge, bool edge_publish_local)
 {
     int ret = ERROR_SUCCESS;
     
@@ -1262,7 +1297,7 @@ int SrsRtmpConn::handle_publish_message(SrsSource* source, SrsCommonMessage* msg
     }
 
     // video, audio, data message
-    if ((ret = process_publish_message(source, msg, vhost_is_edge, edge_publish_local)) != ERROR_SUCCESS) {
+    if ((ret = process_publish_message(source, msg, is_edge, edge_publish_local)) != ERROR_SUCCESS) {
         srs_error("fmle process publish message failed. ret=%d", ret);
         return ret;
     }
@@ -1271,12 +1306,12 @@ int SrsRtmpConn::handle_publish_message(SrsSource* source, SrsCommonMessage* msg
 }
 
 int SrsRtmpConn::process_publish_message(SrsSource* source, SrsCommonMessage* msg,
-                                         bool vhost_is_edge, bool edge_publish_local)
+                                         bool is_edge, bool edge_publish_local)
 {
     int ret = ERROR_SUCCESS;
     
     // for edge, directly proxy message to origin.
-    if (vhost_is_edge) {
+    if (is_edge) {
         if (!edge_publish_local) {
             if ((ret = source->on_edge_proxy_publish(msg)) != ERROR_SUCCESS) {
                 srs_error("edge publish proxy msg failed. ret=%d", ret);
@@ -1513,7 +1548,7 @@ int SrsRtmpConn::check_edge_token_traverse_auth()
     SrsTcpClient* transport = new SrsTcpClient();
     SrsAutoFree(SrsTcpClient, transport);
     
-    vector<string> args = _srs_config->get_vhost_edge_origin(req->vhost)->args;
+    vector<string> args = _srs_config->get_cluster_edge_origin(_srs_config->get_cluster(req->vhost))->args;
     for (int i = 0; i < (int)args.size(); i++) {
         string hostport = args.at(i);
         if ((ret = connect_server(hostport, transport)) == ERROR_SUCCESS) {
@@ -1535,7 +1570,7 @@ int SrsRtmpConn::connect_server(string hostport, SrsTcpClient* transport)
 {
     int ret = ERROR_SUCCESS;
     
-    SrsConfDirective* conf = _srs_config->get_vhost_edge_origin(req->vhost);
+    SrsConfDirective* conf = _srs_config->get_cluster_edge_origin(_srs_config->get_cluster(req->vhost));
     srs_assert(conf);
     
     // select the origin.
