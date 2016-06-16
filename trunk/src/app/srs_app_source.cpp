@@ -777,6 +777,10 @@ SrsSource* SrsSource::fetch(SrsRequest* r)
     // for origin auth is on, the token in request maybe invalid,
     // and we only need to update the token of request, it's simple.
     source->req->update_auth(r);
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    srs_freep(source->dynamic_cluster);
+    source->dynamic_cluster = _srs_config->get_dynamic_cluster(source->req);
+#endif
 
     return source;
 }
@@ -907,6 +911,9 @@ SrsSource::SrsSource()
 {
     req = NULL;
     encoder_consumer_count = 0;
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    dynamic_cluster = NULL;
+#endif
     jitter_algorithm = SrsRtmpJitterAlgorithmOFF;
     mix_correct = false;
     mix_queue = new SrsMixQueue();
@@ -926,7 +933,7 @@ SrsSource::SrsSource()
     
     cache_metadata = cache_sh_video = cache_sh_audio = NULL;
     
-    _can_publish = true;
+    _publishing_count = 0;
     _source_id = -1;
     
     play_edge = new SrsPlayEdge();
@@ -984,6 +991,9 @@ SrsSource::~SrsSource()
 #endif
 
     srs_freep(req);
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    srs_freep(dynamic_cluster);
+#endif
 }
 
 void SrsSource::dispose()
@@ -1024,6 +1034,9 @@ int SrsSource::initialize(SrsRequest* r, ISrsSourceHandler* h, ISrsHlsHandler* h
 
     handler = h;
     req = r->copy();
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    dynamic_cluster = _srs_config->get_dynamic_cluster(req);
+#endif
     atc = _srs_config->get_atc(req->vhost);
 
 #ifdef SRS_AUTO_HLS
@@ -1052,6 +1065,22 @@ int SrsSource::initialize(SrsRequest* r, ISrsSourceHandler* h, ISrsHlsHandler* h
     mix_correct = _srs_config->get_mix_correct(req->vhost);
     
     return ret;
+}
+
+SrsConfDirective* SrsSource::get_cluster()
+{
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    if (dynamic_cluster != NULL) {
+        return dynamic_cluster;
+    }
+#endif
+
+    return _srs_config->get_cluster(req->vhost);
+}
+
+SrsRequest* SrsSource::get_request()
+{
+    return req;
 }
 
 int SrsSource::on_reload_vhost_play(string vhost)
@@ -1384,14 +1413,13 @@ int SrsSource::source_id()
     return _source_id;
 }
 
-bool SrsSource::can_publish(bool is_edge, bool edge_publish_local)
+bool SrsSource::can_publish(bool is_edge)
 {
     if (is_edge) {
-        bool ret = publish_edge->can_publish();
-        return edge_publish_local ? (ret && _can_publish) : ret;
+        return publish_edge->can_publish();
     }
 
-    return _can_publish;
+    return _publishing_count < 1;
 }
 
 int SrsSource::on_meta_data(SrsCommonMessage* msg, SrsOnMetaDataPacket* metadata)
@@ -2052,11 +2080,13 @@ int SrsSource::on_aggregate(SrsCommonMessage* msg)
 int SrsSource::on_publish()
 {
     int ret = ERROR_SUCCESS;
-    
+
+    if (_publishing_count++ >= 1) {
+        return ret;
+    }
+
     // update the request object.
     srs_assert(req);
-    
-    _can_publish = false;
     
     // whatever, the publish thread is the source or edge source,
     // save its id to srouce id.
@@ -2127,6 +2157,10 @@ int SrsSource::on_publish()
 
 void SrsSource::on_unpublish()
 {
+    if (--_publishing_count >= 1) {
+        return;
+    }
+
     // destroy all forwarders
     destroy_forwarders();
 
@@ -2156,7 +2190,7 @@ void SrsSource::on_unpublish()
     srs_info("clear cache/metadata when unpublish.");
     srs_trace("cleanup when unpublish");
     
-    _can_publish = true;
+    _publishing_count = 0;
     _source_id = -1;
 
     // notify the handler.
@@ -2229,7 +2263,7 @@ int SrsSource::create_consumer(SrsRequest* r, SrsConsumer*& consumer, bool ds, b
     }
 
     // for edge, when play edge stream, check the state
-    if (_can_publish && _srs_config->get_vhost_is_edge(req->vhost)) {
+    if (can_publish(false) && _srs_config->get_cluster_is_edge(get_cluster())) {
         // notice edge to start for the first client.
         if ((ret = play_edge->on_client_play()) != ERROR_SUCCESS) {
             srs_error("notice edge start play stream failed. ret=%d", ret);
@@ -2286,64 +2320,44 @@ void SrsSource::on_edge_proxy_unpublish()
 int SrsSource::create_forwarders()
 {
     int ret = ERROR_SUCCESS;
-    SrsConfDirective* forward;
-    SrsConfDirective* destinations;
 
 #ifdef SRS_AUTO_DYNAMIC_CONFIG 
-    if ((forward = _srs_config->get_dynamic_forward(req)) != NULL) {
-        SrsAutoFree(SrsConfDirective, forward);
-        if (_srs_config->get_forward_enabled(forward)
-            && (destinations = _srs_config->get_forward_destinations(forward)) != NULL) {
-            for (int i = 0; i < (int)destinations->args.size(); i++) {
-                std::string destination = destinations->args.at(i);
-                
-                SrsForwarder* forwarder = new SrsForwarder(this);
-                forwarders.push_back(forwarder);
-                
-                // initialize the forwarder with request.
-                if ((ret = forwarder->initialize(req, destination)) != ERROR_SUCCESS) {
-                    return ret;
-                }
-            
-                double queue_size = _srs_config->get_queue_length(req->vhost);
-                forwarder->set_queue_size(queue_size);
-                
-                if ((ret = forwarder->on_publish()) != ERROR_SUCCESS) {
-                    srs_error("start forwarder failed. "
-                        "vhost=%s, app=%s, stream=%s, forward-to=%s",
-                        req->vhost.c_str(), req->app.c_str(), req->stream.c_str(),
-                        destination.c_str());
-                    return ret;
-                }
-            }
-        }
-    }
+    SrsConfDirective* dyn_conf = _srs_config->get_dynamic_forward(req);
+    SrsAutoFree(SrsConfDirective, dyn_conf);
+    SrsConfDirective* conf = dyn_conf;
+#else
+    SrsConfDirective* conf = NULL;
 #endif
 
-    if ((forward = _srs_config->get_forward(req->vhost)) != NULL
-        && _srs_config->get_forward_enabled(forward)
-        && (destinations = _srs_config->get_forward_destinations(forward)) != NULL) {
-        for (int i = 0; i < (int)destinations->args.size(); i++) {
-            std::string destination = destinations->args.at(i);
-            
-            SrsForwarder* forwarder = new SrsForwarder(this);
-            forwarders.push_back(forwarder);
-            
-            // initialize the forwarder with request.
-            if ((ret = forwarder->initialize(req, destination)) != ERROR_SUCCESS) {
-                return ret;
-            }
+    if (conf == NULL) {
+        conf = _srs_config->get_forward(req->vhost);
+    }
+
+    if (!_srs_config->get_forward_enabled(conf)
+        || (conf = _srs_config->get_forward_destinations(conf)) == NULL) {
+        return ret;
+    }
+
+    for (int i = 0; i < (int)conf->args.size(); i++) {
+        std::string destination = conf->args.at(i);
         
-            double queue_size = _srs_config->get_queue_length(req->vhost);
-            forwarder->set_queue_size(queue_size);
-            
-            if ((ret = forwarder->on_publish()) != ERROR_SUCCESS) {
-                srs_error("start forwarder failed. "
-                    "vhost=%s, app=%s, stream=%s, forward-to=%s",
-                    req->vhost.c_str(), req->app.c_str(), req->stream.c_str(),
-                    destination.c_str());
-                return ret;
-            }
+        SrsForwarder* forwarder = new SrsForwarder(this);
+        forwarders.push_back(forwarder);
+        
+        // initialize the forwarder with request.
+        if ((ret = forwarder->initialize(req, destination)) != ERROR_SUCCESS) {
+            return ret;
+        }
+    
+        double queue_size = _srs_config->get_queue_length(req->vhost);
+        forwarder->set_queue_size(queue_size);
+        
+        if ((ret = forwarder->on_publish()) != ERROR_SUCCESS) {
+            srs_error("start forwarder failed. "
+                "vhost=%s, app=%s, stream=%s, forward-to=%s",
+                req->vhost.c_str(), req->app.c_str(), req->stream.c_str(),
+                destination.c_str());
+            return ret;
         }
     }
 
@@ -2366,3 +2380,20 @@ string SrsSource::get_curr_origin()
     return play_edge->get_curr_origin();
 }
 
+int SrsSource::edge_resume_play()
+{
+    int ret = ERROR_SUCCESS;
+
+    if (consumers.size() > encoder_consumer_count) {
+        return play_edge->on_client_play();
+    }
+
+    return ret;
+}
+
+void SrsSource::edge_pause_play()
+{
+    if (consumers.size() > encoder_consumer_count) {
+        play_edge->on_all_client_stop();
+    }
+}

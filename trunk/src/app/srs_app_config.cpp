@@ -1409,7 +1409,7 @@ int SrsConfig::reload_vhost(SrsConfDirective* old_root)
         // third, the origin or upnode device can always be restart,
         //      edge will retry and the users connected to edge are ok.
         // it's ok to add or remove edge/origin vhost.
-        if (get_vhost_is_edge(old_vhost) != get_vhost_is_edge(new_vhost)) {
+        if (get_cluster_is_edge(get_cluster(old_vhost)) != get_cluster_is_edge(get_cluster(old_vhost))) {
             ret = ERROR_RTMP_EDGE_RELOAD;
             srs_error("reload never supports mode changed. ret=%d", ret);
             return ret;
@@ -2370,14 +2370,11 @@ int SrsConfig::global_to_json(SrsJsonObject* obj)
         if (get_bw_check_enabled(dir->arg0())) {
             sobj->set("bandcheck", SrsJsonAny::boolean(true));
         }
-        if (!get_vhost_is_edge(dir->arg0())) {
+        if (!get_cluster_is_edge(get_cluster(dir->arg0()))) {
             sobj->set("origin", SrsJsonAny::boolean(true));
         }
-        if (true) {
-            SrsConfDirective* sdir = get_forward(dir->arg0());
-            if (sdir != NULL && get_forward_enabled(sdir)) {
-                sobj->set("forward", SrsJsonAny::boolean(true));
-            }
+        if (get_forward_enabled(get_forward(dir->arg0()))) {
+            sobj->set("forward", SrsJsonAny::boolean(true));
         }
         
         if (get_security_enabled(dir->arg0())) {
@@ -3944,7 +3941,7 @@ int SrsConfig::check_config()
                 && n != "security" && n != "http_remux"
                 && n != "http_static" && n != "hds" && n != "exec"
 #ifdef SRS_AUTO_DYNAMIC_CONFIG 
-                && n != "dynamic_transcode" && n != "dynamic_forward"
+                && n != "dynamic_transcode" && n != "dynamic_forward" && n != "dynamic_cluster"
 #endif
             ) {
                 ret = ERROR_SYSTEM_CONFIG_INVALID;
@@ -5049,6 +5046,10 @@ SrsConfDirective* SrsConfig::get_dynamic_forward(SrsRequest *req)
 bool SrsConfig::get_forward_enabled(SrsConfDirective* conf)
 {
     static bool DEFAULT = false;
+
+    if (!conf) {
+        return DEFAULT;
+    }
     
     conf = conf->get("enabled");
     if (!conf || conf->arg0().empty()) {
@@ -5060,6 +5061,10 @@ bool SrsConfig::get_forward_enabled(SrsConfDirective* conf)
 
 SrsConfDirective* SrsConfig::get_forward_destinations(SrsConfDirective* conf)
 {
+    if (!conf) {
+        return NULL;
+    }
+
     return conf->get("destination");
 }
 
@@ -5268,22 +5273,32 @@ int SrsConfig::get_bw_check_limit_kbps(string vhost)
     return ::atoi(conf->arg0().c_str());
 }
 
-bool SrsConfig::get_vhost_is_edge(string vhost)
+SrsConfDirective* SrsConfig::get_cluster(std::string vhost)
 {
     SrsConfDirective* conf = get_vhost(vhost);
-    return get_vhost_is_edge(conf);
+    if (!conf) {
+        return NULL;
+    }
+    
+    return get_cluster(conf);
 }
 
-bool SrsConfig::get_vhost_is_edge(SrsConfDirective* vhost)
+SrsConfDirective* SrsConfig::get_cluster(SrsConfDirective* conf)
+{
+    return conf->get("cluster");
+}
+
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+SrsConfDirective* SrsConfig::get_dynamic_cluster(SrsRequest *req)
+{
+    return get_dynamic_config("dynamic_cluster", req);
+}
+#endif
+
+bool SrsConfig::get_cluster_is_edge(SrsConfDirective* conf)
 {
     static bool DEFAULT = false;
     
-    SrsConfDirective* conf = vhost;
-    if (!conf) {
-        return DEFAULT;
-    }
-    
-    conf = conf->get("cluster");
     if (!conf) {
         return DEFAULT;
     }
@@ -5296,14 +5311,8 @@ bool SrsConfig::get_vhost_is_edge(SrsConfDirective* vhost)
     return "remote" == conf->arg0();
 }
 
-SrsConfDirective* SrsConfig::get_vhost_edge_origin(string vhost)
+SrsConfDirective* SrsConfig::get_cluster_edge_origin(SrsConfDirective* conf)
 {
-    SrsConfDirective* conf = get_vhost(vhost);
-    if (!conf) {
-        return NULL;
-    }
-    
-    conf = conf->get("cluster");
     if (!conf) {
         return NULL;
     }
@@ -5311,16 +5320,10 @@ SrsConfDirective* SrsConfig::get_vhost_edge_origin(string vhost)
     return conf->get("origin");
 }
 
-bool SrsConfig::get_vhost_edge_token_traverse(string vhost)
+bool SrsConfig::get_cluster_edge_token_traverse(SrsConfDirective* conf)
 {
     static bool DEFAULT = false;
     
-    SrsConfDirective* conf = get_vhost(vhost);
-    if (!conf) {
-        return DEFAULT;
-    }
-    
-    conf = conf->get("cluster");
     if (!conf) {
         return DEFAULT;
     }
@@ -5333,16 +5336,10 @@ bool SrsConfig::get_vhost_edge_token_traverse(string vhost)
     return SRS_CONF_PERFER_FALSE(conf->arg0());
 }
 
-string SrsConfig::get_vhost_edge_transform_vhost(string vhost)
+string SrsConfig::get_cluster_edge_transform_vhost(SrsConfDirective* conf)
 {
     static string DEFAULT = "[vhost]";
     
-    SrsConfDirective* conf = get_vhost(vhost);
-    if (!conf) {
-        return DEFAULT;
-    }
-    
-    conf = conf->get("cluster");
     if (!conf) {
         return DEFAULT;
     }
@@ -5355,16 +5352,10 @@ string SrsConfig::get_vhost_edge_transform_vhost(string vhost)
     return conf->arg0();
 }
 
-bool SrsConfig::get_vhost_edge_publish_local(string vhost)
+bool SrsConfig::get_cluster_edge_publish_local(SrsConfDirective* conf)
 {
     static bool DEFAULT = false;
     
-    SrsConfDirective* conf = get_vhost(vhost);
-    if (!conf) {
-        return DEFAULT;
-    }
-    
-    conf = conf->get("cluster");
     if (!conf) {
         return DEFAULT;
     }

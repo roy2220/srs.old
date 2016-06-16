@@ -1458,7 +1458,7 @@ VOID TEST(ConfigMainTest, ParseFullConf)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -1470,10 +1470,10 @@ VOID TEST(ConfigMainTest, ParseFullConf)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL == conf.get_transcode(vhost, ""));
     EXPECT_FALSE(conf.get_transcode_enabled(NULL));
     EXPECT_TRUE(conf.get_transcode_ffmpeg(NULL).empty());
@@ -1540,7 +1540,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_same_edge)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_publish(vhost));
@@ -1551,15 +1551,16 @@ VOID TEST(ConfigMainTest, ParseFullConf_same_edge)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_TRUE(conf.get_vhost_is_edge(vhost));
-    EXPECT_TRUE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL != conf.get_vhost_edge_origin(vhost));
+    EXPECT_TRUE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_TRUE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
     if (true) {
-        SrsConfDirective* edge = conf.get_vhost_edge_origin(vhost);
-        EXPECT_STREQ("127.0.0.1:1935", edge->arg0().c_str());
-        EXPECT_STREQ("localhost:1935", edge->arg1().c_str());
+        SrsConfDirective* cluster = conf.get_cluster(vhost);
+        EXPECT_TRUE(NULL != conf.get_cluster_edge_origin(cluster));
+        SrsConfDirective* origin = conf.get_cluster_edge_origin(cluster);
+        EXPECT_STREQ("127.0.0.1:1935", origin->arg0().c_str());
+        EXPECT_STREQ("localhost:1935", origin->arg1().c_str());
     }
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL == conf.get_transcode(vhost, ""));
     EXPECT_FALSE(conf.get_transcode_enabled(NULL));
     EXPECT_TRUE(conf.get_transcode_ffmpeg(NULL).empty());
@@ -1621,7 +1622,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_change_edge)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_publish(vhost));
@@ -1632,10 +1633,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_change_edge)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL == conf.get_transcode(vhost, ""));
     EXPECT_FALSE(conf.get_transcode_enabled(NULL));
     EXPECT_TRUE(conf.get_transcode_ffmpeg(NULL).empty());
@@ -1696,7 +1697,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_dvr)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_publish(vhost));
@@ -1707,10 +1708,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_dvr)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL == conf.get_transcode(vhost, ""));
     EXPECT_FALSE(conf.get_transcode_enabled(NULL));
     EXPECT_TRUE(conf.get_transcode_ffmpeg(NULL).empty());
@@ -1771,7 +1772,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_ingest)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_publish(vhost));
@@ -1782,10 +1783,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_ingest)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL == conf.get_transcode(vhost, ""));
     EXPECT_FALSE(conf.get_transcode_enabled(NULL));
     EXPECT_TRUE(conf.get_transcode_ffmpeg(NULL).empty());
@@ -1867,7 +1868,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_http)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_publish(vhost));
@@ -1878,10 +1879,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_http)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL == conf.get_transcode(vhost, ""));
     EXPECT_FALSE(conf.get_transcode_enabled(NULL));
     EXPECT_TRUE(conf.get_transcode_ffmpeg(NULL).empty());
@@ -1945,7 +1946,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_hls_enabled)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_publish(vhost));
@@ -1956,10 +1957,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_hls_enabled)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL == conf.get_transcode(vhost, ""));
     EXPECT_FALSE(conf.get_transcode_enabled(NULL));
     EXPECT_TRUE(conf.get_transcode_ffmpeg(NULL).empty());
@@ -2023,7 +2024,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_hls_disabled)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_publish(vhost));
@@ -2034,10 +2035,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_hls_disabled)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL == conf.get_transcode(vhost, ""));
     EXPECT_FALSE(conf.get_transcode_enabled(NULL));
     EXPECT_TRUE(conf.get_transcode_ffmpeg(NULL).empty());
@@ -2101,7 +2102,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_http_hooks)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_TRUE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL != conf.get_vhost_on_connect(vhost));
     if (true) {
@@ -2143,10 +2144,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_http_hooks)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL == conf.get_transcode(vhost, ""));
     EXPECT_FALSE(conf.get_transcode_enabled(NULL));
     EXPECT_TRUE(conf.get_transcode_ffmpeg(NULL).empty());
@@ -2210,7 +2211,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_min_delay)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -2222,10 +2223,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_min_delay)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL == conf.get_transcode(vhost, ""));
     EXPECT_FALSE(conf.get_transcode_enabled(NULL));
     EXPECT_TRUE(conf.get_transcode_ffmpeg(NULL).empty());
@@ -2304,7 +2305,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_refer_anti_suck)
         EXPECT_STREQ("github.io", refer->arg1().c_str());
     }
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -2316,10 +2317,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_refer_anti_suck)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL == conf.get_transcode(vhost, ""));
     EXPECT_FALSE(conf.get_transcode_enabled(NULL));
     EXPECT_TRUE(conf.get_transcode_ffmpeg(NULL).empty());
@@ -2385,7 +2386,6 @@ VOID TEST(ConfigMainTest, ParseFullConf_forward_same_vhost)
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
     if (true) {
         SrsConfDirective* forward = conf.get_forward(vhost);
-        EXPECT_FALSE(forward == NULL);
         EXPECT_TRUE(conf.get_forward_enabled(forward));
         SrsConfDirective* destinations = conf.get_forward_destinations(forward);
         EXPECT_FALSE(destinations == NULL);
@@ -2403,10 +2403,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_forward_same_vhost)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL == conf.get_transcode(vhost, ""));
     EXPECT_FALSE(conf.get_transcode_enabled(NULL));
     EXPECT_TRUE(conf.get_transcode_ffmpeg(NULL).empty());
@@ -2471,7 +2471,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_forward_change_vhost)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -2483,10 +2483,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_forward_change_vhost)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL == conf.get_transcode(vhost, ""));
     EXPECT_FALSE(conf.get_transcode_enabled(NULL));
     EXPECT_TRUE(conf.get_transcode_ffmpeg(NULL).empty());
@@ -2550,7 +2550,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_mirror)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -2562,10 +2562,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_mirror)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL != conf.get_transcode(vhost, ""));
     if (true) {
         SrsConfDirective* transcode = conf.get_transcode(vhost, "");
@@ -2640,7 +2640,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_crop)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -2652,10 +2652,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_crop)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL != conf.get_transcode(vhost, ""));
     if (true) {
         SrsConfDirective* transcode = conf.get_transcode(vhost, "");
@@ -2730,7 +2730,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_logo)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -2742,10 +2742,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_logo)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL != conf.get_transcode(vhost, ""));
     if (true) {
         SrsConfDirective* transcode = conf.get_transcode(vhost, "");
@@ -2820,7 +2820,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_audio)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -2832,10 +2832,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_audio)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL != conf.get_transcode(vhost, ""));
     if (true) {
         SrsConfDirective* transcode = conf.get_transcode(vhost, "");
@@ -2904,7 +2904,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_vn)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -2916,10 +2916,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_vn)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL != conf.get_transcode(vhost, ""));
     if (true) {
         SrsConfDirective* transcode = conf.get_transcode(vhost, "");
@@ -2988,7 +2988,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_copy)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -3000,10 +3000,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_copy)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL != conf.get_transcode(vhost, ""));
     if (true) {
         SrsConfDirective* transcode = conf.get_transcode(vhost, "");
@@ -3068,7 +3068,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_all)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -3080,10 +3080,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_all)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL != conf.get_transcode(vhost, ""));
     if (true) {
         SrsConfDirective* transcode = conf.get_transcode(vhost, "");
@@ -3286,7 +3286,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_ffempty)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -3298,10 +3298,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_ffempty)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL != conf.get_transcode(vhost, ""));
     if (true) {
         SrsConfDirective* transcode = conf.get_transcode(vhost, "");
@@ -3376,7 +3376,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_app)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -3388,10 +3388,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_app)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL == conf.get_transcode(vhost, ""));
     EXPECT_FALSE(conf.get_transcode_enabled(NULL));
     EXPECT_TRUE(conf.get_transcode_ffmpeg(NULL).empty());
@@ -3466,7 +3466,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_stream)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -3478,10 +3478,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_transcode_stream)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL == conf.get_transcode(vhost, ""));
     EXPECT_FALSE(conf.get_transcode_enabled(NULL));
     EXPECT_TRUE(conf.get_transcode_ffmpeg(NULL).empty());
@@ -3556,7 +3556,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_bandcheck)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(65000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -3568,10 +3568,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_bandcheck)
     EXPECT_STREQ("35c9b402c12a7246868752e2878f7e0e", conf.get_bw_check_key(vhost).c_str());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(4000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL == conf.get_transcode(vhost, ""));
     EXPECT_FALSE(conf.get_transcode_enabled(NULL));
     EXPECT_TRUE(conf.get_transcode_ffmpeg(NULL).empty());
@@ -3635,7 +3635,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_chunksize)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(128, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -3647,10 +3647,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_chunksize)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL == conf.get_transcode(vhost, ""));
     EXPECT_FALSE(conf.get_transcode_enabled(NULL));
     EXPECT_TRUE(conf.get_transcode_ffmpeg(NULL).empty());
@@ -3714,7 +3714,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_jitter)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -3726,10 +3726,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_jitter)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL == conf.get_transcode(vhost, ""));
     EXPECT_FALSE(conf.get_transcode_enabled(NULL));
     EXPECT_TRUE(conf.get_transcode_ffmpeg(NULL).empty());
@@ -3793,7 +3793,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_atc)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -3805,10 +3805,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_atc)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL == conf.get_transcode(vhost, ""));
     EXPECT_FALSE(conf.get_transcode_enabled(NULL));
     EXPECT_TRUE(conf.get_transcode_ffmpeg(NULL).empty());
@@ -3872,7 +3872,7 @@ VOID TEST(ConfigMainTest, ParseFullConf_removed)
     EXPECT_TRUE(NULL == conf.get_refer_play(vhost));
     EXPECT_TRUE(NULL == conf.get_refer_publish(vhost));
     EXPECT_EQ(60000, conf.get_chunk_size(vhost));
-    EXPECT_TRUE(NULL == conf.get_forward(vhost));
+    EXPECT_FALSE(conf.get_forward_enabled(conf.get_forward(vhost)));
     EXPECT_FALSE(conf.get_vhost_http_hooks_enabled(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_connect(vhost));
     EXPECT_TRUE(NULL == conf.get_vhost_on_close(vhost));
@@ -3884,10 +3884,10 @@ VOID TEST(ConfigMainTest, ParseFullConf_removed)
     EXPECT_TRUE(conf.get_bw_check_key(vhost).empty());
     EXPECT_EQ(30000, conf.get_bw_check_interval_ms(vhost));
     EXPECT_EQ(1000, conf.get_bw_check_limit_kbps(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(vhost));
-    EXPECT_FALSE(conf.get_vhost_is_edge(conf.get_vhost(vhost)));
-    EXPECT_TRUE(NULL == conf.get_vhost_edge_origin(vhost));
-    EXPECT_FALSE(conf.get_vhost_edge_token_traverse(vhost));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_is_edge(conf.get_cluster(conf.get_vhost(vhost))));
+    EXPECT_TRUE(NULL == conf.get_cluster_edge_origin(conf.get_cluster(vhost)));
+    EXPECT_FALSE(conf.get_cluster_edge_token_traverse(conf.get_cluster(vhost)));
     EXPECT_TRUE(NULL == conf.get_transcode(vhost, ""));
     EXPECT_FALSE(conf.get_transcode_enabled(NULL));
     EXPECT_TRUE(conf.get_transcode_ffmpeg(NULL).empty());

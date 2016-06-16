@@ -37,6 +37,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <srs_app_st.hpp>
 #include <srs_app_reload.hpp>
 #include <srs_core_performance.hpp>
+#include <srs_app_config.hpp>
 
 class SrsConsumer;
 class SrsPlayEdge;
@@ -458,6 +459,10 @@ private:
     int _source_id;
     // deep copy of client request.
     SrsRequest* req;
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    // dynamic cluster config.
+    SrsConfDirective* dynamic_cluster;
+#endif
     // to delivery stream to clients.
     std::vector<SrsConsumer*> consumers;
     // number of encoder consumers.
@@ -510,9 +515,9 @@ private:
     ISrsSourceHandler* handler;
 private:
     /**
-    * can publish, true when is not streaming
+    * publishing count for on_publish and on_unpublish.
     */
-    bool _can_publish;
+    int _publishing_count;
 private:
     SrsSharedPtrMessage* cache_metadata;
     // the cached video sequence header.
@@ -531,6 +536,8 @@ public:
     * initialize the hls with handlers.
     */
     virtual int initialize(SrsRequest* r, ISrsSourceHandler* h, ISrsHlsHandler* hh);
+    virtual SrsConfDirective* get_cluster();
+    virtual SrsRequest* get_request();
 // interface ISrsReloadHandler
 public:
     virtual int on_reload_vhost_play(std::string vhost);
@@ -554,7 +561,7 @@ public:
     virtual int source_id();
 // logic data methods
 public:
-    virtual bool can_publish(bool is_edge, bool edge_publish_local);
+    virtual bool can_publish(bool is_edge);
     virtual int on_meta_data(SrsCommonMessage* msg, SrsOnMetaDataPacket* metadata);
 public:
     virtual int on_audio(SrsCommonMessage* audio);
@@ -602,6 +609,8 @@ private:
     virtual void destroy_forwarders();
 public:
     virtual std::string get_curr_origin();
+    virtual int edge_resume_play();
+    virtual void edge_pause_play();
 };
 
 #endif
