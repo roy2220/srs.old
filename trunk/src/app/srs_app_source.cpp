@@ -928,7 +928,7 @@ SrsSource::SrsSource()
     
     cache_metadata = cache_sh_video = cache_sh_audio = NULL;
     
-    _can_publish = true;
+    _publishing_count = 0;
     _source_id = -1;
     
     play_edge = new SrsPlayEdge();
@@ -1408,14 +1408,13 @@ int SrsSource::source_id()
     return _source_id;
 }
 
-bool SrsSource::can_publish(bool is_edge, bool edge_publish_local)
+bool SrsSource::can_publish(bool is_edge)
 {
     if (is_edge) {
-        bool ret = publish_edge->can_publish();
-        return edge_publish_local ? (ret && _can_publish) : ret;
+        return publish_edge->can_publish();
     }
 
-    return _can_publish;
+    return _publishing_count < 1;
 }
 
 int SrsSource::on_meta_data(SrsCommonMessage* msg, SrsOnMetaDataPacket* metadata)
@@ -2076,11 +2075,13 @@ int SrsSource::on_aggregate(SrsCommonMessage* msg)
 int SrsSource::on_publish()
 {
     int ret = ERROR_SUCCESS;
-    
+
+    if (_publishing_count++ >= 1) {
+        return ret;
+    }
+
     // update the request object.
     srs_assert(req);
-    
-    _can_publish = false;
     
     // whatever, the publish thread is the source or edge source,
     // save its id to srouce id.
@@ -2151,6 +2152,10 @@ int SrsSource::on_publish()
 
 void SrsSource::on_unpublish()
 {
+    if (--_publishing_count >= 1) {
+        return;
+    }
+
     // destroy all forwarders
     destroy_forwarders();
 
@@ -2180,7 +2185,7 @@ void SrsSource::on_unpublish()
     srs_info("clear cache/metadata when unpublish.");
     srs_trace("cleanup when unpublish");
     
-    _can_publish = true;
+    _publishing_count = 0;
     _source_id = -1;
 
     // notify the handler.
@@ -2248,7 +2253,7 @@ int SrsSource::create_consumer(SrsConnection* conn, SrsConsumer*& consumer, bool
     }
 
     // for edge, when play edge stream, check the state
-    if (_can_publish && _srs_config->get_cluster_is_edge(get_cluster())) {
+    if (can_publish(false) && _srs_config->get_cluster_is_edge(get_cluster())) {
         // notice edge to start for the first client.
         if ((ret = play_edge->on_client_play()) != ERROR_SUCCESS) {
             srs_error("notice edge start play stream failed. ret=%d", ret);
@@ -2361,3 +2366,20 @@ string SrsSource::get_curr_origin()
     return play_edge->get_curr_origin();
 }
 
+int SrsSource::edge_resume_play()
+{
+    int ret = ERROR_SUCCESS;
+
+    if (consumers.size() >= 1) {
+        return play_edge->on_client_play();
+    }
+
+    return ret;
+}
+
+void SrsSource::edge_pause_play()
+{
+    if (consumers.size() >= 1) {
+        play_edge->on_all_client_stop();
+    }
+}

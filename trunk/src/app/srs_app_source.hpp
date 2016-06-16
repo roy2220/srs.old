@@ -510,9 +510,9 @@ private:
     ISrsSourceHandler* handler;
 private:
     /**
-    * can publish, true when is not streaming
+    * publishing count for on_publish and on_unpublish.
     */
-    bool _can_publish;
+    int _publishing_count;
 private:
     SrsSharedPtrMessage* cache_metadata;
     // the cached video sequence header.
@@ -556,7 +556,7 @@ public:
     virtual int source_id();
 // logic data methods
 public:
-    virtual bool can_publish(bool is_edge, bool edge_publish_local);
+    virtual bool can_publish(bool is_edge);
     virtual int on_meta_data(SrsCommonMessage* msg, SrsOnMetaDataPacket* metadata);
 public:
     virtual int on_audio(SrsCommonMessage* audio);
@@ -604,6 +604,8 @@ private:
     virtual void destroy_forwarders();
 public:
     virtual std::string get_curr_origin();
+    virtual int edge_resume_play();
+    virtual void edge_pause_play();
 };
 
 #endif

@@ -1216,7 +1216,7 @@ int SrsRtmpConn::acquire_publish(SrsSource* source, bool is_edge, bool edge_publ
 {
     int ret = ERROR_SUCCESS;
 
-    if (!source->can_publish(is_edge, edge_publish_local)) {
+    if (!source->can_publish(is_edge)) {
         ret = ERROR_SYSTEM_STREAM_BUSY;
         srs_warn("stream %s is already publishing. ret=%d", 
             req->get_stream_url().c_str(), ret);
@@ -1235,6 +1235,8 @@ int SrsRtmpConn::acquire_publish(SrsSource* source, bool is_edge, bool edge_publ
                 srs_error("notify publish failed. ret=%d", ret);
                 return ret;
             }
+
+            source->edge_pause_play();
         }
     } else {
         if ((ret = source->on_publish()) != ERROR_SUCCESS) {
@@ -1248,12 +1250,18 @@ int SrsRtmpConn::acquire_publish(SrsSource* source, bool is_edge, bool edge_publ
     
 void SrsRtmpConn::release_publish(SrsSource* source, bool is_edge, bool edge_publish_local)
 {
+    int ret = ERROR_SUCCESS;
+
     // when edge, notice edge to change state.
     // when origin, notice all service to unpublish.
     if (is_edge) {
         source->on_edge_proxy_unpublish();
 
         if (edge_publish_local) {
+            if ((ret = source->edge_resume_play()) != ERROR_SUCCESS) {
+                srs_warn("edge resume play failed. ret=%d", ret);
+            }
+
             source->on_unpublish();
         }
     } else {
