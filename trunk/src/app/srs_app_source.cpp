@@ -2384,7 +2384,7 @@ int SrsSource::edge_resume_play()
 {
     int ret = ERROR_SUCCESS;
 
-    if (consumers.size() > encoder_consumer_count) {
+    if ((int)consumers.size() > encoder_consumer_count) {
         return play_edge->on_client_play();
     }
 
@@ -2393,7 +2393,7 @@ int SrsSource::edge_resume_play()
 
 void SrsSource::edge_pause_play()
 {
-    if (consumers.size() > encoder_consumer_count) {
+    if ((int)consumers.size() > encoder_consumer_count) {
         play_edge->on_all_client_stop();
     }
 }
