@@ -241,7 +241,6 @@ void SrsSimpleRtmpClient::kbps_sample(const char* label, int64_t age)
 {
     kbps->sample();
     
-    /*
     int sr = kbps->get_send_kbps();
     int sr30s = kbps->get_send_kbps_30s();
     int sr5m = kbps->get_send_kbps_5m();
@@ -249,15 +248,13 @@ void SrsSimpleRtmpClient::kbps_sample(const char* label, int64_t age)
     int rr30s = kbps->get_recv_kbps_30s();
     int rr5m = kbps->get_recv_kbps_5m();
     
-    srs_trace("<- %s time=%"PRId64", okbps=%d,%d,%d, ikbps=%d,%d,%d", age, sr, sr30s, sr5m, rr, rr30s, rr5m);
-    */
+    srs_trace("<- %s time=%"PRId64", okbps=%d,%d,%d, ikbps=%d,%d,%d", label, age, sr, sr30s, sr5m, rr, rr30s, rr5m);
 }
 
 void SrsSimpleRtmpClient::kbps_sample(const char* label, int64_t age, int msgs)
 {
     kbps->sample();
     
-    /*
     int sr = kbps->get_send_kbps();
     int sr30s = kbps->get_send_kbps_30s();
     int sr5m = kbps->get_send_kbps_5m();
@@ -265,8 +262,7 @@ void SrsSimpleRtmpClient::kbps_sample(const char* label, int64_t age, int msgs)
     int rr30s = kbps->get_recv_kbps_30s();
     int rr5m = kbps->get_recv_kbps_5m();
     
-    srs_trace("<- %s time=%"PRId64", msgs=%d, okbps=%d,%d,%d, ikbps=%d,%d,%d", age, msgs, sr, sr30s, sr5m, rr, rr30s, rr5m);
-    */
+    srs_trace("<- %s time=%"PRId64", msgs=%d, okbps=%d,%d,%d, ikbps=%d,%d,%d", label, age, msgs, sr, sr30s, sr5m, rr, rr30s, rr5m);
 }
 
 int SrsSimpleRtmpClient::sid()
@@ -1146,7 +1142,7 @@ int SrsRtmpConn::do_publishing(SrsSource* source, SrsPublishRecvThread* trd)
     
     // initialize the publish timeout.
     publish_1stpkt_timeout = _srs_config->get_publish_1stpkt_timeout(req->vhost);
-    publish_normal_timeout = _srs_config->get_publish_1stpkt_timeout(req->vhost);
+    publish_normal_timeout = _srs_config->get_publish_normal_timeout(req->vhost);
     
     // set the sock options.
     set_sock_options();
