@@ -774,8 +774,7 @@ SrsSource* SrsSource::fetch(SrsRequest* r)
     // and we only need to update the token of request, it's simple.
     source->req->update_auth(r);
 #ifdef SRS_AUTO_DYNAMIC_CONFIG 
-    srs_freep(source->dynamic_cluster);
-    source->dynamic_cluster = _srs_config->get_dynamic_cluster(source->req);
+    source->update_dynamic_cluster();
 #endif
 
     return source;
@@ -1077,6 +1076,14 @@ SrsRequest* SrsSource::get_request()
 {
     return req;
 }
+
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+void SrsSource::update_dynamic_cluster()
+{
+    srs_freep(dynamic_cluster);
+    dynamic_cluster = _srs_config->get_dynamic_cluster(req);
+}
+#endif
 
 int SrsSource::on_reload_vhost_play(string vhost)
 {

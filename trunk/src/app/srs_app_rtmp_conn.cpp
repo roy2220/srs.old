@@ -1090,11 +1090,6 @@ int SrsRtmpConn::publishing()
         srs_verbose("check publish_refer success.");
     }
 
-    if ((ret = http_hooks_on_publish()) != ERROR_SUCCESS) {
-        srs_error("http hook on_publish failed. ret=%d", ret);
-        return ret;
-    }
-
     bool is_edge = _srs_config->get_cluster_is_edge(source->get_cluster());
     bool edge_publish_local = _srs_config->get_cluster_edge_publish_local(source->get_cluster());
     if ((ret = acquire_publish(source, is_edge, edge_publish_local)) == ERROR_SUCCESS) {
