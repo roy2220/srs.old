@@ -538,6 +538,9 @@ public:
     virtual int initialize(SrsRequest* r, ISrsSourceHandler* h, ISrsHlsHandler* hh);
     virtual SrsConfDirective* get_cluster();
     virtual SrsRequest* get_request();
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+    virtual void update_dynamic_cluster();
+#endif
 // interface ISrsReloadHandler
 public:
     virtual int on_reload_vhost_play(std::string vhost);

@@ -257,6 +257,13 @@ int SrsEdgeIngester::cycle()
         
         if (srs_is_client_gracefully_close(ret)) {
             srs_warn("origin disconnected, retry. ret=%d", ret);
+
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+            if (ret == ERROR_SOCKET_TIMEOUT) {
+                source->update_dynamic_cluster();
+            }
+#endif
+
             ret = ERROR_SUCCESS;
         }
         break;
