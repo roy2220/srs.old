@@ -214,8 +214,10 @@ void SrsEdgeIngester::stop()
     pthread->stop();
     upstream->close();
     
-    // notice to unpublish.
-    source->on_unpublish();
+    if (source != NULL) {
+        // notice to unpublish.
+        source->on_unpublish();
+    }
 }
 
 string SrsEdgeIngester::get_curr_origin()
