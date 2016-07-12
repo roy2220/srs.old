@@ -945,7 +945,7 @@ int SrsHttpParser::parse_message_imp(ISrsProtocolReaderWriter* io)
         // @see https://github.com/ossrs/srs/issues/400
         char* start = buffer->bytes();
         char* end = start + buffer->size();
-        for (char* p = start; p <= end - 4; p++) {
+        for (char* p = start; p + 4 <= end; p++) {
             // SRS_HTTP_CRLFCRLF "\r\n\r\n" // 0x0D0A0D0A
             if (p[0] == SRS_CONSTS_CR && p[1] == SRS_CONSTS_LF && p[2] == SRS_CONSTS_CR && p[3] == SRS_CONSTS_LF) {
                 nparsed = http_parser_execute(&parser, &settings, buffer->bytes(), buffer->size());
