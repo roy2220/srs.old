@@ -25,6 +25,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <signal.h>
 #include <sys/types.h>
@@ -45,6 +47,10 @@ using namespace std;
 
 // nginx also set to 512
 #define SERVER_LISTEN_BACKLOG 512
+
+#define SOCKET_KEEPALIVE_INTERVAL 12
+
+static int set_socket_keepalive(int fd, int interval);
 
 ISrsUdpHandler::ISrsUdpHandler()
 {
@@ -276,6 +282,13 @@ int SrsTcpListener::cycle()
         return ret;
     }
     srs_verbose("get a client. fd=%d", st_netfd_fileno(client_stfd));
+
+    if (set_socket_keepalive(st_netfd_fileno(client_stfd), SOCKET_KEEPALIVE_INTERVAL) < 0) {
+        srs_close_stfd(client_stfd);
+        ret = ERROR_SOCKET_SET_KEEPALIVE;
+        srs_error("set sockopt keepalive error. ret=%d", ret);
+        return ret;
+    }
     
     if ((ret = handler->on_tcp_client(client_stfd)) != ERROR_SUCCESS) {
         srs_warn("accept client error. ret=%d", ret);
@@ -283,5 +296,38 @@ int SrsTcpListener::cycle()
     }
     
     return ret;
+}
+
+static int set_socket_keepalive(int fd, int interval)
+{
+    int val = 1;
+
+    if (::setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &val, sizeof(val)) == -1) {
+        return -1;
+    }
+
+    /* Send first probe after `interval' seconds. */
+    val = interval;
+    if (::setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE, &val, sizeof(val)) < 0) {
+        return -1;
+    }
+
+    /* Send next probes after the specified interval. Note that we set the
+     * delay as interval / 3, as we send three probes before detecting
+     * an error (see the next setsockopt call). */
+    val = interval/3;
+    if (val == 0) val = 1;
+    if (::setsockopt(fd, IPPROTO_TCP, TCP_KEEPINTVL, &val, sizeof(val)) < 0) {
+        return -1;
+    }
+
+    /* Consider the socket in error state after three we send three ACK
+     * probes without getting a reply. */
+    val = 3;
+    if (::setsockopt(fd, IPPROTO_TCP, TCP_KEEPCNT, &val, sizeof(val)) < 0) {
+        return -1;
+    }
+
+    return 0;
 }
 
