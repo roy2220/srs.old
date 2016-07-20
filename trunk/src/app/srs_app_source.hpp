@@ -422,7 +422,21 @@ class SrsSource : public ISrsReloadHandler
 {
 private:
     static std::map<std::string, SrsSource*> pool;
+    static st_mutex_t pool_mutex;
 public:
+    static int fetch_or_create(SrsRequest* r, ISrsSourceHandler* h, ISrsHlsHandler* hh,
+                               SrsSource** pps);
+    /**
+     * dispose and cycle all sources.
+     */
+    static void dispose_all();
+    static int cycle_all();
+    /**
+    * when system exit, destroy the sources,
+    * for gmc to analysis mem leaks.
+    */
+    static void destroy();
+private:
     /**
     * find stream by vhost/app/stream.
     * @param r the client request.
@@ -440,16 +454,6 @@ public:
     * get the exists source by stream info(vhost, app, stream), NULL when not exists.
     */
     static SrsSource* fetch(std::string vhost, std::string app, std::string stream);
-    /**
-     * dispose and cycle all sources.
-     */
-    static void dispose_all();
-    static int cycle_all();
-    /**
-    * when system exit, destroy the sources,
-    * for gmc to analysis mem leaks.
-    */
-    static void destroy();
 private:
     // source id,
     // for publish, it's the publish client id.

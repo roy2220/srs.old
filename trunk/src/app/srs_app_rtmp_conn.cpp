@@ -819,17 +819,13 @@ int SrsRtmpConn::check_vhost(bool try_default_vhost)
 int SrsRtmpConn::find_source(SrsSource** s)
 {
     int ret = ERROR_SUCCESS;
-    SrsSource*& source = *s;
 
     // find a source to serve.
-    source = SrsSource::fetch(req);
-    if (!source) {
-        if ((ret = SrsSource::create(req, server, server, &source)) != ERROR_SUCCESS) {
-            return ret;
-        }
+    if ((ret = SrsSource::fetch_or_create(req, server, server, s)) != ERROR_SUCCESS) {
+        return ret;
     }
-    srs_assert(source != NULL);
 
+    SrsSource* source = *s;
     bool is_edge = _srs_config->get_cluster_is_edge(source->get_cluster());
     bool enabled_cache = _srs_config->get_gop_cache(req->vhost);
     srs_trace("source url=%s, ip=%s, cache=%d, is_edge=%d, source_id=%d[%d]",

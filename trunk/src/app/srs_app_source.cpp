@@ -737,6 +737,26 @@ ISrsSourceHandler::~ISrsSourceHandler()
 }
 
 std::map<std::string, SrsSource*> SrsSource::pool;
+st_mutex_t SrsSource::pool_mutex = st_mutex_new();
+
+int SrsSource::fetch_or_create(SrsRequest* r, ISrsSourceHandler* h, ISrsHlsHandler* hh,
+                               SrsSource** pps)
+{
+    int ret = ERROR_SUCCESS;
+
+    st_mutex_lock(pool_mutex);
+    *pps = SrsSource::fetch(r);
+    if (!*pps) {
+        if ((ret = SrsSource::create(r, h, hh, pps)) != ERROR_SUCCESS) {
+            st_mutex_unlock(pool_mutex);
+            return ret;
+        }
+    }
+    srs_assert(*pps != NULL);
+    st_mutex_unlock(pool_mutex);
+
+    return ret;
+}
 
 int SrsSource::create(SrsRequest* r, ISrsSourceHandler* h, ISrsHlsHandler* hh, SrsSource** pps)
 {
@@ -777,9 +797,6 @@ SrsSource* SrsSource::fetch(SrsRequest* r)
     // for origin auth is on, the token in request maybe invalid,
     // and we only need to update the token of request, it's simple.
     source->req->update_auth(r);
-#ifdef SRS_AUTO_DYNAMIC_CONFIG 
-    source->update_dynamic_cluster();
-#endif
 
     return source;
 }

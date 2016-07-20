@@ -242,6 +242,11 @@ int SrsEdgeIngester::cycle()
         }
         
         if ((ret = upstream->connect(source, lb)) != ERROR_SUCCESS) {
+#ifdef SRS_AUTO_DYNAMIC_CONFIG 
+            if (ret == ERROR_ST_CONNECT) {
+                source->update_dynamic_cluster();
+            }
+#endif
             return ret;
         }
         
